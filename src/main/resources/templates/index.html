@@ -50,32 +50,32 @@
             </div>
         </aside>
 
-        <!-- CENTER: recent project status -->
+        <!-- CENTER: project status -->
         <main class="panel">
-            <div class="hd">최근 도달한 프로젝트 현황</div>
+            <div class="hd">프로젝트 현황</div>
             <div class="bd">
                 <div class="kpi">
                     <div class="box">
                         <div class="label">진행 중</div>
-                        <div class="value ok" th:text="${inProgressCount}">0</div>
-                        <div class="meta">상태 필드 연결 후 집계</div>
+                        <div class="value ok" th:text="${inProgressCount ?: 0}">0</div>
+                        <div class="meta">회사 전체 진행중 프로젝트</div>
                     </div>
                     <div class="box">
                         <div class="label">대기</div>
-                        <div class="value warn" th:text="${waitingCount}">0</div>
-                        <div class="meta">상태 필드 연결 후 집계</div>
+                        <div class="value warn" th:text="${waitingCount ?: 0}">0</div>
+                        <div class="meta">승인/리소스 대기</div>
                     </div>
                     <div class="box">
-                        <div class="label">전체 프로젝트</div>
-                        <div class="value" th:text="${totalProjects}">0</div>
-                        <div class="meta">회사 전체 기준</div>
+                        <div class="label">긴급 이슈</div>
+                        <div class="value bad" th:text="${urgentCount ?: 0}">0</div>
+                        <div class="meta">오늘 처리 필요</div>
                     </div>
                 </div>
 
                 <div style="margin-top:14px; display:grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                    <!-- 마감일 기준 정렬 프로젝트 (deadline 필드 추가 전: createdAt 역순) -->
+                    <!-- 최근 방문 프로젝트 (deadline 필드 추가 전: createdAt 역순) -->
                     <section class="panel" style="border:1px solid #e7ecf8;">
-                        <div class="hd">마감 임박 프로젝트</div>
+                        <div class="hd">최근 방문 프로젝트</div>
                         <div class="bd">
 
                             <!-- 비로그인 blur -->
@@ -110,13 +110,21 @@
                         </div>
                     </section>
 
-                    <!-- 이번 주 마감 작업 (Task 엔티티 추가 전: placeholder) -->
+                    <!-- 이번 주 마감 작업 -->
                     <section class="panel" style="border:1px solid #e7ecf8;">
                         <div class="hd">이번 주 마감 작업</div>
                         <div class="bd">
-                            <div class="meta" style="padding:8px 0;">
-                                등록된 작업이 없습니다.<br>
-                                <span style="font-size:11px;">(Task 엔티티 연결 후 표시됩니다)</span>
+                            <div class="task-item">
+                                <div class="task-title">로그인 실패 로그 정리</div>
+                                <div class="task-meta">백엔드 · 03/10 · 진행중</div>
+                            </div>
+                            <div class="task-item">
+                                <div class="task-title">협업 가이드 문서 초안</div>
+                                <div class="task-meta">PM · 03/12 · 대기</div>
+                            </div>
+                            <div class="task-item">
+                                <div class="task-title">검색 결과 UX 와이어프레임</div>
+                                <div class="task-meta">디자인 · 03/14 · 진행중</div>
                             </div>
                         </div>
                     </section>
@@ -124,31 +132,48 @@
             </div>
         </main>
 
-        <!-- RIGHT: 이슈 현황 (priority 순: P0 → P1 → P2) -->
-        <aside class="panel">
-            <div class="hd">이슈 현황</div>
-            <div class="bd">
+        <!-- RIGHT: 이슈 현황 + 알림/공지 -->
+        <aside class="right-col">
 
-                <!-- 비로그인 blur -->
-                <div sec:authorize="isAnonymous()" class="blur-wrap" style="min-height:120px;">
-                    <div class="blur-content">
-                        <ul class="list">
-                            <li><div><b>[P0] 이슈 제목</b><div class="meta">담당: - · 상태: -</div></div><span class="pill red">긴급</span></li>
-                            <li><div><b>[P1] 이슈 제목</b><div class="meta">담당: - · 상태: -</div></div><span class="pill blue">진행</span></li>
-                        </ul>
+            <!-- 이슈 현황 (priority 순: P0 → P1 → P2) -->
+            <div class="panel">
+                <div class="hd">이슈 현황</div>
+                <div class="bd">
+
+                    <!-- 비로그인 blur -->
+                    <div sec:authorize="isAnonymous()" class="blur-wrap" style="min-height:120px;">
+                        <div class="blur-content">
+                            <ul class="list">
+                                <li><div><b>[P0] 이슈 제목</b><div class="meta">담당: - · 상태: -</div></div><span class="pill red">긴급</span></li>
+                                <li><div><b>[P1] 이슈 제목</b><div class="meta">담당: - · 상태: -</div></div><span class="pill blue">진행</span></li>
+                            </ul>
+                        </div>
+                        <div class="blur-msg">로그인 후 데이터를 확인할 수 있습니다</div>
                     </div>
-                    <div class="blur-msg">로그인 후 데이터를 확인할 수 있습니다</div>
-                </div>
 
-                <!-- 로그인: Issue 엔티티 연결 전 placeholder -->
-                <div sec:authorize="isAuthenticated()">
-                    <div class="meta" style="padding:8px 0;">
-                        등록된 이슈가 없습니다.<br>
-                        <span style="font-size:11px;">(Issue 엔티티 연결 후 P0→P1→P2 순으로 표시됩니다)</span>
+                    <!-- 로그인: Issue 엔티티 연결 전 placeholder -->
+                    <div sec:authorize="isAuthenticated()">
+                        <div class="meta" style="padding:8px 0;">
+                            등록된 이슈가 없습니다.<br>
+                            <span style="font-size:11px;">(Issue 엔티티 연결 후 P0→P1→P2 순으로 표시됩니다)</span>
+                        </div>
                     </div>
-                </div>
 
+                </div>
             </div>
+
+            <!-- 알림/공지 -->
+            <div class="panel" style="margin-top:12px;">
+                <div class="hd">알림/공지</div>
+                <div class="bd">
+                    <ul class="notice-list">
+                        <li>오늘 17:00 스프린트 체크인</li>
+                        <li>신규 멤버 온보딩 문서 업데이트</li>
+                        <li>배포 전 체크리스트 점검</li>
+                    </ul>
+                </div>
+            </div>
+
         </aside>
     </div>
 
