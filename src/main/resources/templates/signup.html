@@ -20,7 +20,7 @@
                 </div>
                 <div class="field" style="margin-top:16px;">
                     <div class="muted">· 이메일은 로그인 ID로 사용됩니다</div>
-                    <div class="muted">· Notion ID는 추후 알림 연동에 사용됩니다</div>
+                    <div class="muted">· Slack ID는 Slack 알림 연동에 사용됩니다</div>
                     <div class="muted">· 가입 후 프로젝트 참여 요청이 가능합니다</div>
                     <div class="muted">· 권한 변경은 관리자에게 문의하세요</div>
                 </div>
@@ -33,27 +33,33 @@
                 <form th:action="@{/signup}" th:object="${member}" method="post">
                     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
 
+                    <div th:if="${errorMessage}" class="msg error" th:text="${errorMessage}"
+                         style="margin-bottom:12px;"></div>
+
                     <div class="field">
-                        <label for="email">이메일</label>
+                        <label for="email">이메일 <span style="color:var(--muted); font-size:11px;">(@gmail.com만 허용)</span></label>
                         <input type="text" id="email" th:field="*{email}" autocomplete="username">
+                        <div id="err-email" class="msg error" style="display:none; margin-top:6px;"></div>
                     </div>
                     <div class="field">
                         <label for="name">이름</label>
                         <input type="text" id="name" th:field="*{name}" autocomplete="name">
+                        <div id="err-name" class="msg error" style="display:none; margin-top:6px;"></div>
                     </div>
                     <div class="field">
                         <label for="password">비밀번호</label>
-                        <input type="password" id="password" th:field="*{password}" autocomplete="new-password" required>
+                        <input type="password" id="password" th:field="*{password}" autocomplete="new-password"
+                               oninput="blockKoreanPassword(this)">
+                        <div id="err-password" class="msg error" style="display:none; margin-top:6px;"></div>
                     </div>
                     <div class="field">
-                        <label for="notionId">Notion ID <span style="color:var(--warn);">*</span></label>
-                        <input type="text" id="notionId" th:field="*{notionId}" placeholder="Notion 사용자 ID (알림 연동용)" autocomplete="off" required>
+                        <label for="slackUserId">Slack ID <span style="color:var(--warn);">*</span></label>
+                        <input type="text" id="slackUserId" th:field="*{slackUserId}" placeholder="Slack 사용자 ID (예: U0123ABCDEF)" autocomplete="off">
+                        <div id="err-slackUserId" class="msg error" style="display:none; margin-top:6px;"></div>
                     </div>
 
-                    <input type="hidden" th:field="*{role}" value="ROLE_USER"/>
-
                     <div class="actions">
-                        <button class="btn primary" type="submit">가입하기</button>
+                        <button class="btn primary" type="button" onclick="validateAndSubmit()">가입하기</button>
                         <a class="btn" th:href="@{/}">홈</a>
                     </div>
                     <div class="muted" style="margin-top:10px;">
@@ -68,6 +74,85 @@
 </div>
 
 <script th:src="@{/js/portal.js}"></script>
+<script>
+    function blockKoreanPassword(input) {
+        const KOREAN = /[가-힣ㄱ-ㅎㅏ-ㅣ]/g;
+        if (KOREAN.test(input.value)) {
+            input.value = input.value.replace(KOREAN, '');
+            const errEl = document.getElementById('err-password');
+            errEl.textContent = '비밀번호에는 한글을 입력할 수 없습니다.';
+            errEl.style.display = 'block';
+            input.style.borderColor = '#e24b4b';
+        } else {
+            const errEl = document.getElementById('err-password');
+            errEl.style.display = 'none';
+            input.style.borderColor = '';
+        }
+    }
+
+    function validateAndSubmit() {
+        const fields = [
+            { id: 'email',       errId: 'err-email' },
+            { id: 'name',        errId: 'err-name' },
+            { id: 'password',    errId: 'err-password' },
+            { id: 'slackUserId', errId: 'err-slackUserId' },
+        ];
+
+        // 에러 초기화
+        fields.forEach(f => {
+            const el = document.getElementById(f.errId);
+            el.style.display = 'none';
+            el.textContent = '';
+            document.getElementById(f.id).style.borderColor = '';
+        });
+
+        const email    = document.getElementById('email').value.trim();
+        const name     = document.getElementById('name').value.trim();
+        const password = document.getElementById('password').value;
+        const slackUserId = document.getElementById('slackUserId').value.trim();
+
+        function showErr(fieldId, errId, msg) {
+            const errEl = document.getElementById(errId);
+            errEl.textContent = msg;
+            errEl.style.display = 'block';
+            document.getElementById(fieldId).style.borderColor = '#e24b4b';
+            document.getElementById(fieldId).focus();
+        }
+
+        const KOREAN = /[가-힣ㄱ-ㅎㅏ-ㅣ]/;
+
+        // 순서대로 검사: 이메일 → 이름 → 비밀번호 → Slack ID
+        if (!email) {
+            showErr('email', 'err-email', '이메일을 입력하세요.');
+            return;
+        }
+        if (!email.toLowerCase().endsWith('@gmail.com')) {
+            showErr('email', 'err-email', 'Gmail(@gmail.com) 계정만 가입할 수 있습니다.');
+            return;
+        }
+
+        if (!name) {
+            showErr('name', 'err-name', '이름을 입력하세요.');
+            return;
+        }
+
+        if (!password) {
+            showErr('password', 'err-password', '비밀번호를 입력하세요.');
+            return;
+        }
+        if (KOREAN.test(password)) {
+            showErr('password', 'err-password', '비밀번호에는 한글을 입력할 수 없습니다.');
+            return;
+        }
+
+        if (!slackUserId) {
+            showErr('slackUserId', 'err-slackUserId', 'Slack ID를 입력하세요.');
+            return;
+        }
+
+        document.querySelector('form').submit();
+    }
+</script>
 </body>
 </html>
 

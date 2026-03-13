@@ -1,5 +1,6 @@
 package com.alice.syncly.config;
 
+import com.alice.syncly.auth.web.LoginFailureHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -12,6 +13,12 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 public class SecurityConfig {
 
+    private final LoginFailureHandler loginFailureHandler;
+
+    public SecurityConfig(LoginFailureHandler loginFailureHandler) {
+        this.loginFailureHandler = loginFailureHandler;
+    }
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -21,7 +28,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/login", "/signup", "/error", "/css/**", "/js/**", "/images/**").permitAll()
+                        .requestMatchers("/", "/dashboard", "/login", "/signup", "/error", "/css/**", "/js/**", "/images/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
@@ -30,6 +37,7 @@ public class SecurityConfig {
                         .usernameParameter("email")
                         .passwordParameter("password")
                         .defaultSuccessUrl("/", true)
+                        .failureHandler(loginFailureHandler)
                         .permitAll()
                 )
                 .logout(logout -> logout

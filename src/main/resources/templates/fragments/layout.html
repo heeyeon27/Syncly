@@ -5,9 +5,11 @@
 
 <!--
   header(activePage) 파라미터
-    'home'   → index 페이지 (로그인 상태 분기 + 검색 영역 포함)
-    'login'  → 로그인 페이지 (탭: 회원가입 | 로그인(active))
-    'signup' → 회원가입 페이지 (탭: 회원가입(active) | 로그인)
+    'home'           → index 페이지 (로그인 상태 분기 + 검색 영역 포함)
+    'projects'       → 프로젝트 목록 (로그인 상태 분기 + 검색 영역 포함)
+    'project-detail' → 프로젝트 상세 (로그인 상태 분기 + 검색 영역 포함)
+    'login'          → 로그인 페이지 (탭: 회원가입 | 로그인(active))
+    'signup'         → 회원가입 페이지 (탭: 회원가입(active) | 로그인)
 -->
 <div th:fragment="header(activePage)" class="topbar">
     <div class="wrap">
@@ -18,8 +20,8 @@
                 <span class="tag">협업 · 프로젝트 · 이슈 관리</span>
             </div>
 
-            <!-- Home: 로그인 상태 분기 -->
-            <th:block th:if="${activePage == 'home'}">
+            <!-- Home / 프로젝트 페이지: 로그인 상태 분기 -->
+            <th:block th:if="${activePage == 'home' or activePage == 'projects' or activePage == 'project-detail'}">
                 <div class="auth" sec:authorize="isAnonymous()">
                     <span>환영합니다. 로그인이 필요합니다.</span>
                     <a class="btn ghost" th:href="@{/signup}">회원가입</a>
@@ -35,7 +37,7 @@
             </th:block>
 
             <!-- Login / Signup: 탭 고정 순서 (회원가입 | 로그인) -->
-            <nav th:if="${activePage != 'home'}" class="auth-tabs">
+            <nav th:if="${activePage == 'login' or activePage == 'signup'}" class="auth-tabs">
                 <a th:class="${activePage == 'signup'} ? 'tab active' : 'tab'"
                    th:href="@{/signup}">회원가입</a>
                 <a th:class="${activePage == 'login'} ? 'tab active' : 'tab'"
@@ -43,8 +45,8 @@
             </nav>
         </div>
 
-        <!-- 검색 영역: home 전용 -->
-        <th:block th:if="${activePage == 'home'}">
+        <!-- 검색 영역: home / 프로젝트 페이지 공통 -->
+        <th:block th:if="${activePage == 'home' or activePage == 'projects' or activePage == 'project-detail'}">
             <form class="search" th:action="@{/}" method="get">
                 <input type="text" name="q" th:value="${param.q}"
                        placeholder="프로젝트 검색 (예: 기획, 백로그, sprint, 디자인)"

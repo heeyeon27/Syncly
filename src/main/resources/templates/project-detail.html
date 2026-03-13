@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>프로젝트 상세 — WorkWith</title>
+    <link rel="stylesheet" th:href="@{/css/portal.css}">
+</head>
+<body>
+<div th:replace="~{fragments/layout :: header('project-detail')}"></div>
+
+<div class="wrap">
+
+    <!-- 브레드크럼 -->
+    <div class="breadcrumb">
+        <a th:href="@{/}">홈</a>
+        <span>›</span>
+        <a th:href="@{/projects}">프로젝트 목록</a>
+        <span>›</span>
+        <span>2024 서비스 리뉴얼</span>
+    </div>
+
+    <!-- 프로젝트 헤더 -->
+    <div class="pj-header panel" style="margin-top:12px;">
+        <div class="bd" style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
+            <div>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <h1 class="pj-title">2024 서비스 리뉴얼</h1>
+                    <span class="pill green">진행중</span>
+                </div>
+                <div class="pj-desc">메인 대시보드 및 이슈 관리 UI 전면 개편. 사용자 경험 개선 및 성능 최적화 포함.</div>
+                <div class="pj-info-row">
+                    <span><b>PM</b> 김민준</span>
+                    <span><b>시작일</b> 2024-01-15</span>
+                    <span><b>마감일</b> 2024-06-30</span>
+                    <span><b>멤버</b> 5명</span>
+                    <span><b>진행률</b> 62%</span>
+                </div>
+            </div>
+            <div style="display:flex; gap:8px; align-items:flex-start;">
+                <button class="btn" style="font-size:12px;">멤버 관리</button>
+                <button class="btn primary" style="font-size:12px;">이슈 추가</button>
+            </div>
+        </div>
+        <!-- 전체 진행 바 -->
+        <div style="padding: 0 12px 12px;">
+            <div class="pc-progress-bar" style="height:10px;">
+                <span style="width:62%"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 탭 -->
+    <div class="detail-tabs" style="margin-top:14px;">
+        <button class="detail-tab active" onclick="switchTab('pms', this)">PMS 일정표</button>
+        <button class="detail-tab" onclick="switchTab('issues', this)">이슈</button>
+        <button class="detail-tab" onclick="switchTab('members', this)">멤버</button>
+        <button class="detail-tab" onclick="switchTab('notices', this)">공지</button>
+    </div>
+
+    <!-- ===== PMS 일정표 탭 ===== -->
+    <div id="tab-pms" class="tab-content">
+        <div class="panel" style="margin-top:10px;">
+            <div class="hd" style="display:flex; justify-content:space-between; align-items:center;">
+                <span>PMS 일정표</span>
+                <button class="btn primary" style="font-size:11px; padding:4px 10px;"
+                        onclick="openPmsModal()">+ PMS 등록</button>
+            </div>
+            <div style="overflow-x:auto;">
+                <table class="pms-table" id="pmsTable">
+                    <thead>
+                        <tr>
+                            <th style="width:36px; text-align:center;">#</th>
+                            <th class="pms-role-col">역할</th>
+                            <th class="pms-member-col">담당자</th>
+                            <th>차수명</th>
+                            <th>시작일</th>
+                            <th>종료일</th>
+                            <th>상태</th>
+                            <th class="pms-note-col">메모</th>
+                            <th style="width:72px; text-align:center;">액션</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pmsTableBody">
+                        <tr data-idx="1" data-person="김민준" data-status="done">
+                            <td class="pms-idx">1</td>
+                            <td><span class="role-badge role-pm">PM</span></td>
+                            <td><span class="avatar-circle">김</span> 김민준</td>
+                            <td class="pms-phase">기획 1차</td>
+                            <td>2024-01-15</td>
+                            <td>2024-02-29</td>
+                            <td><span class="status-badge done">완료</span></td>
+                            <td class="pms-note">프로젝트 범위 및 일정 확정</td>
+                            <td class="pms-action"><button class="btn-done done-disabled" disabled>완료됨</button></td>
+                        </tr>
+                        <tr data-idx="2" data-person="이서연" data-status="done">
+                            <td class="pms-idx">2</td>
+                            <td><span class="role-badge role-design">디자인</span></td>
+                            <td><span class="avatar-circle">이</span> 이서연</td>
+                            <td class="pms-phase">디자인 1차</td>
+                            <td>2024-01-22</td>
+                            <td>2024-03-15</td>
+                            <td><span class="status-badge done">완료</span></td>
+                            <td class="pms-note">와이어프레임 및 UI 시안</td>
+                            <td class="pms-action"><button class="btn-done done-disabled" disabled>완료됨</button></td>
+                        </tr>
+                        <tr data-idx="3" data-person="박도현" data-status="done">
+                            <td class="pms-idx">3</td>
+                            <td><span class="role-badge role-backend">백엔드</span></td>
+                            <td><span class="avatar-circle">박</span> 박도현</td>
+                            <td class="pms-phase">API 개발 1차</td>
+                            <td>2024-01-29</td>
+                            <td>2024-03-22</td>
+                            <td><span class="status-badge done">완료</span></td>
+                            <td class="pms-note">REST API 설계 및 개발</td>
+                            <td class="pms-action"><button class="btn-done done-disabled" disabled>완료됨</button></td>
+                        </tr>
+                        <tr data-idx="4" data-person="최지아" data-status="done">
+                            <td class="pms-idx">4</td>
+                            <td><span class="role-badge role-publish">퍼블</span></td>
+                            <td><span class="avatar-circle">최</span> 최지아</td>
+                            <td class="pms-phase">마크업 1차</td>
+                            <td>2024-02-05</td>
+                            <td>2024-03-31</td>
+                            <td><span class="status-badge done">완료</span></td>
+                            <td class="pms-note">HTML/CSS 마크업 1차</td>
+                            <td class="pms-action"><button class="btn-done done-disabled" disabled>완료됨</button></td>
+                        </tr>
+                        <tr data-idx="5" data-person="정하은" data-status="done">
+                            <td class="pms-idx">5</td>
+                            <td><span class="role-badge role-frontend">프론트</span></td>
+                            <td><span class="avatar-circle">정</span> 정하은</td>
+                            <td class="pms-phase">개발 1차</td>
+                            <td>2024-02-19</td>
+                            <td>2024-04-12</td>
+                            <td><span class="status-badge done">완료</span></td>
+                            <td class="pms-note">React 컴포넌트 개발</td>
+                            <td class="pms-action"><button class="btn-done done-disabled" disabled>완료됨</button></td>
+                        </tr>
+                        <tr data-idx="6" data-person="김민준" data-status="active">
+                            <td class="pms-idx">6</td>
+                            <td><span class="role-badge role-pm">PM</span></td>
+                            <td><span class="avatar-circle">김</span> 김민준</td>
+                            <td class="pms-phase">기획 2차</td>
+                            <td>2024-03-01</td>
+                            <td>2024-06-30</td>
+                            <td><span class="status-badge active">진행중</span></td>
+                            <td class="pms-note">전체 일정 조율 및 리소스 관리</td>
+                            <td class="pms-action"><button class="btn-done" onclick="completePms(this)">완료</button></td>
+                        </tr>
+                        <tr data-idx="7" data-person="이서연" data-status="active">
+                            <td class="pms-idx">7</td>
+                            <td><span class="role-badge role-design">디자인</span></td>
+                            <td><span class="avatar-circle">이</span> 이서연</td>
+                            <td class="pms-phase">디자인 2차</td>
+                            <td>2024-03-18</td>
+                            <td>2024-05-31</td>
+                            <td><span class="status-badge active">진행중</span></td>
+                            <td class="pms-note">컴포넌트 시스템 구축</td>
+                            <td class="pms-action"><button class="btn-done" onclick="completePms(this)">완료</button></td>
+                        </tr>
+                        <tr data-idx="8" data-person="박도현" data-status="warn">
+                            <td class="pms-idx">8</td>
+                            <td><span class="role-badge role-backend">백엔드</span></td>
+                            <td><span class="avatar-circle">박</span> 박도현</td>
+                            <td class="pms-phase">API 개발 2차</td>
+                            <td>2024-03-25</td>
+                            <td>2024-06-20</td>
+                            <td><span class="status-badge warn">검토중</span></td>
+                            <td class="pms-note">성능 최적화</td>
+                            <td class="pms-action"><button class="btn-done" onclick="completePms(this)">완료</button></td>
+                        </tr>
+                        <tr data-idx="9" data-person="최지아" data-status="active">
+                            <td class="pms-idx">9</td>
+                            <td><span class="role-badge role-publish">퍼블</span></td>
+                            <td><span class="avatar-circle">최</span> 최지아</td>
+                            <td class="pms-phase">마크업 2차</td>
+                            <td>2024-04-01</td>
+                            <td>2024-06-15</td>
+                            <td><span class="status-badge active">진행중</span></td>
+                            <td class="pms-note">크로스브라우저 테스트</td>
+                            <td class="pms-action"><button class="btn-done" onclick="completePms(this)">완료</button></td>
+                        </tr>
+                        <tr data-idx="10" data-person="정하은" data-status="active">
+                            <td class="pms-idx">10</td>
+                            <td><span class="role-badge role-frontend">프론트</span></td>
+                            <td><span class="avatar-circle">정</span> 정하은</td>
+                            <td class="pms-phase">개발 2차</td>
+                            <td>2024-04-15</td>
+                            <td>2024-06-28</td>
+                            <td><span class="status-badge active">진행중</span></td>
+                            <td class="pms-note">API 연동 및 기능 개발</td>
+                            <td class="pms-action"><button class="btn-done" onclick="completePms(this)">완료</button></td>
+                        </tr>
+                        <tr data-idx="11" data-person="미배정" data-status="pending">
+                            <td class="pms-idx">11</td>
+                            <td><span class="role-badge role-qa">QA</span></td>
+                            <td><span class="avatar-circle av-muted">-</span> 미배정</td>
+                            <td class="pms-phase">QA 1차</td>
+                            <td class="muted">-</td>
+                            <td class="muted">-</td>
+                            <td><span class="status-badge pending">대기</span></td>
+                            <td class="pms-note">기능 테스트 및 버그 리포트</td>
+                            <td class="pms-action"><button class="btn-done" onclick="completePms(this)">완료</button></td>
+                        </tr>
+                        <tr data-idx="12" data-person="미배정" data-status="pending">
+                            <td class="pms-idx">12</td>
+                            <td><span class="role-badge role-qa">QA</span></td>
+                            <td><span class="avatar-circle av-muted">-</span> 미배정</td>
+                            <td class="pms-phase">QA 2차</td>
+                            <td>2024-06-01</td>
+                            <td>2024-06-28</td>
+                            <td><span class="status-badge pending">대기</span></td>
+                            <td class="pms-note">회귀 테스트</td>
+                            <td class="pms-action"><button class="btn-done" onclick="completePms(this)">완료</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 이슈 탭 ===== -->
+    <div id="tab-issues" class="tab-content" style="display:none;">
+        <div class="panel" style="margin-top:10px;">
+            <div class="hd" style="display:flex; justify-content:space-between; align-items:center;">
+                <span>이슈 목록</span>
+                <button class="btn primary" style="font-size:11px; padding:4px 8px;">+ 이슈 추가</button>
+            </div>
+            <div class="bd" style="padding:0;">
+                <table class="issue-table">
+                    <thead>
+                        <tr>
+                            <th>우선순위</th>
+                            <th>제목</th>
+                            <th>담당자</th>
+                            <th>상태</th>
+                            <th>마감일</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="priority-badge urgent">긴급</span></td>
+                            <td>[P0] 로그인 세션 만료 오류</td>
+                            <td>박도현</td>
+                            <td><span class="status-badge active">진행중</span></td>
+                            <td>2024-04-05</td>
+                        </tr>
+                        <tr>
+                            <td><span class="priority-badge high">높음</span></td>
+                            <td>[P1] 대시보드 로딩 속도 개선</td>
+                            <td>정하은</td>
+                            <td><span class="status-badge active">진행중</span></td>
+                            <td>2024-04-12</td>
+                        </tr>
+                        <tr>
+                            <td><span class="priority-badge medium">보통</span></td>
+                            <td>[P2] 모바일 반응형 레이아웃 깨짐</td>
+                            <td>최지아</td>
+                            <td><span class="status-badge warn">검토중</span></td>
+                            <td>2024-04-20</td>
+                        </tr>
+                        <tr>
+                            <td><span class="priority-badge low">낮음</span></td>
+                            <td>[P3] 다크모드 색상 토큰 정리</td>
+                            <td>이서연</td>
+                            <td><span class="status-badge pending">대기</span></td>
+                            <td>-</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 멤버 탭 ===== -->
+    <div id="tab-members" class="tab-content" style="display:none;">
+        <div class="panel" style="margin-top:10px;">
+            <div class="hd">프로젝트 멤버</div>
+            <div class="bd">
+                <div class="member-list-grid">
+                    <div class="member-card">
+                        <span class="avatar-lg">김</span>
+                        <div class="mc-info">
+                            <div class="mc-name">김민준</div>
+                            <div class="mc-role"><span class="role-badge role-pm">PM</span></div>
+                            <div class="meta">minjun@company.com</div>
+                        </div>
+                    </div>
+                    <div class="member-card">
+                        <span class="avatar-lg">이</span>
+                        <div class="mc-info">
+                            <div class="mc-name">이서연</div>
+                            <div class="mc-role"><span class="role-badge role-design">디자인</span></div>
+                            <div class="meta">seoyeon@company.com</div>
+                        </div>
+                    </div>
+                    <div class="member-card">
+                        <span class="avatar-lg">최</span>
+                        <div class="mc-info">
+                            <div class="mc-name">최지아</div>
+                            <div class="mc-role"><span class="role-badge role-publish">퍼블</span></div>
+                            <div class="meta">jia@company.com</div>
+                        </div>
+                    </div>
+                    <div class="member-card">
+                        <span class="avatar-lg">정</span>
+                        <div class="mc-info">
+                            <div class="mc-name">정하은</div>
+                            <div class="mc-role"><span class="role-badge role-frontend">프론트</span></div>
+                            <div class="meta">haeun@company.com</div>
+                        </div>
+                    </div>
+                    <div class="member-card">
+                        <span class="avatar-lg">박</span>
+                        <div class="mc-info">
+                            <div class="mc-name">박도현</div>
+                            <div class="mc-role"><span class="role-badge role-backend">백엔드</span></div>
+                            <div class="meta">dohyun@company.com</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 공지 탭 ===== -->
+    <div id="tab-notices" class="tab-content" style="display:none;">
+        <div class="panel" style="margin-top:10px;">
+            <div class="hd" style="display:flex; justify-content:space-between; align-items:center;">
+                <span>공지사항</span>
+                <button class="btn primary" style="font-size:11px; padding:4px 8px;">+ 공지 작성</button>
+            </div>
+            <div class="bd" style="padding:0;">
+                <div class="notice-row">
+                    <div class="notice-row-title">4월 스프린트 목표 공유</div>
+                    <div class="notice-row-meta">김민준 · 2024-04-01</div>
+                </div>
+                <div class="notice-row">
+                    <div class="notice-row-title">디자인 시스템 컬러 토큰 업데이트 안내</div>
+                    <div class="notice-row-meta">이서연 · 2024-03-28</div>
+                </div>
+                <div class="notice-row">
+                    <div class="notice-row-title">QA 환경 배포 일정 변경 공지</div>
+                    <div class="notice-row-meta">김민준 · 2024-03-22</div>
+                </div>
+                <div class="notice-row">
+                    <div class="notice-row-title">API 문서 최신화 완료 알림</div>
+                    <div class="notice-row-meta">박도현 · 2024-03-15</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/layout :: footer}"></div>
+</div>
+
+<!-- ===== PMS 등록 모달 ===== -->
+<div id="pmsModal" class="modal-overlay" style="display:none;" onclick="closePmsModalOutside(event)">
+    <div class="modal-box" style="width:520px;">
+        <div class="modal-hd">
+            <span>PMS 일정 등록</span>
+            <button class="modal-close" onclick="closePmsModal()">✕</button>
+        </div>
+        <div class="modal-bd">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div class="field">
+                    <label>역할 <span style="color:var(--warn)">*</span></label>
+                    <select id="pmsRole" style="width:100%; padding:9px 10px; border:1px solid #8fb3ff;
+                            border-radius:3px; background:#fff; font-size:13px; outline:none;">
+                        <option value="">선택하세요</option>
+                        <option value="PM">PM</option>
+                        <option value="디자인">디자인</option>
+                        <option value="퍼블">퍼블</option>
+                        <option value="프론트">프론트</option>
+                        <option value="백엔드">백엔드</option>
+                        <option value="QA">QA</option>
+                        <option value="기타">기타</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>담당자 <span style="color:var(--warn)">*</span></label>
+                    <input type="text" id="pmsPerson" placeholder="예: 김민준" autocomplete="off"/>
+                </div>
+                <div class="field" style="grid-column:1/-1;">
+                    <label>차수명 <span style="color:var(--warn)">*</span></label>
+                    <input type="text" id="pmsPhase" placeholder="예: 기획 1차, 디자인 2차, QA 최종" autocomplete="off"/>
+                </div>
+                <div class="field">
+                    <label>시작일</label>
+                    <input type="date" id="pmsStart" style="width:100%; padding:9px 10px; border:1px solid #8fb3ff;
+                           border-radius:3px; background:#fff; font-size:13px; outline:none;"/>
+                </div>
+                <div class="field">
+                    <label>종료일</label>
+                    <input type="date" id="pmsEnd" style="width:100%; padding:9px 10px; border:1px solid #8fb3ff;
+                           border-radius:3px; background:#fff; font-size:13px; outline:none;"/>
+                </div>
+                <div class="field">
+                    <label>상태</label>
+                    <select id="pmsStatus" style="width:100%; padding:9px 10px; border:1px solid #8fb3ff;
+                            border-radius:3px; background:#fff; font-size:13px; outline:none;">
+                        <option value="pending">대기</option>
+                        <option value="active">진행중</option>
+                        <option value="warn">검토중</option>
+                        <option value="done">완료</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>메모</label>
+                    <input type="text" id="pmsMemo" placeholder="간단한 메모 (선택)" autocomplete="off"/>
+                </div>
+            </div>
+        </div>
+        <div class="modal-ft">
+            <button class="btn" onclick="closePmsModal()">취소</button>
+            <button class="btn primary" onclick="submitPms()">등록</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== 완료 알림 모달 ===== -->
+<div id="pmsNotifyModal" class="modal-overlay" style="display:none;">
+    <div class="modal-box" style="width:420px;">
+        <div class="modal-hd">
+            <span>작업 완료 알림</span>
+            <button class="modal-close" onclick="closePmsNotify()">✕</button>
+        </div>
+        <div class="modal-bd">
+            <div class="pms-notify-icon">✓</div>
+            <div id="pmsNotifyMsg" style="text-align:center; font-size:14px; line-height:1.7; color:var(--text);"></div>
+        </div>
+        <div class="modal-ft" style="justify-content:center;">
+            <button class="btn primary" onclick="closePmsNotify()">확인</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== 토스트 ===== -->
+<div id="pmsToast" class="pms-toast" style="display:none;"></div>
+
+<script>
+    /* ── 탭 전환 ── */
+    function switchTab(tab, btn) {
+        document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
+        document.querySelectorAll('.detail-tab').forEach(b => b.classList.remove('active'));
+        document.getElementById('tab-' + tab).style.display = '';
+        btn.classList.add('active');
+    }
+
+    /* ── PMS 등록 모달 ── */
+    function openPmsModal() {
+        document.getElementById('pmsModal').style.display = 'flex';
+        document.getElementById('pmsRole').focus();
+    }
+    function closePmsModal() {
+        document.getElementById('pmsModal').style.display = 'none';
+    }
+    function closePmsModalOutside(e) {
+        if (e.target.id === 'pmsModal') closePmsModal();
+    }
+
+    const roleClassMap = {
+        'PM':'role-pm', '디자인':'role-design', '퍼블':'role-publish',
+        '프론트':'role-frontend', '백엔드':'role-backend', 'QA':'role-qa', '기타':'role-qa'
+    };
+    const statusLabelMap = {
+        'pending':'대기', 'active':'진행중', 'warn':'검토중', 'done':'완료'
+    };
+
+    function submitPms() {
+        const role    = document.getElementById('pmsRole').value;
+        const person  = document.getElementById('pmsPerson').value.trim();
+        const phase   = document.getElementById('pmsPhase').value.trim();
+        const start   = document.getElementById('pmsStart').value;
+        const end     = document.getElementById('pmsEnd').value;
+        const status  = document.getElementById('pmsStatus').value;
+        const memo    = document.getElementById('pmsMemo').value.trim();
+
+        if (!role)   { alert('역할을 선택하세요.'); return; }
+        if (!person) { alert('담당자를 입력하세요.'); return; }
+        if (!phase)  { alert('차수명을 입력하세요.'); return; }
+
+        const tbody = document.getElementById('pmsTableBody');
+        const rows  = tbody.querySelectorAll('tr');
+        const newIdx = rows.length + 1;
+        const initial = person.charAt(0);
+        const isDone  = status === 'done';
+
+        const tr = document.createElement('tr');
+        tr.dataset.idx    = newIdx;
+        tr.dataset.person = person;
+        tr.dataset.status = status;
+        tr.innerHTML = `
+            <td class="pms-idx">${newIdx}</td>
+            <td><span class="role-badge ${roleClassMap[role] || 'role-qa'}">${role}</span></td>
+            <td><span class="avatar-circle">${initial}</span> ${person}</td>
+            <td class="pms-phase">${phase}</td>
+            <td>${start || '<span class="muted">-</span>'}</td>
+            <td>${end   || '<span class="muted">-</span>'}</td>
+            <td><span class="status-badge ${status}">${statusLabelMap[status]}</span></td>
+            <td class="pms-note">${memo || '-'}</td>
+            <td class="pms-action">
+                ${isDone
+                    ? '<button class="btn-done done-disabled" disabled>완료됨</button>'
+                    : '<button class="btn-done" onclick="completePms(this)">완료</button>'
+                }
+            </td>`;
+        tbody.appendChild(tr);
+
+        closePmsModal();
+        clearPmsForm();
+        showToast(`"${phase}" 일정이 등록되었습니다.`);
+    }
+
+    function clearPmsForm() {
+        ['pmsRole','pmsStatus'].forEach(id => document.getElementById(id).selectedIndex = 0);
+        ['pmsPerson','pmsPhase','pmsStart','pmsEnd','pmsMemo'].forEach(id => document.getElementById(id).value = '');
+    }
+
+    /* ── 완료 처리 ── */
+    function completePms(btn) {
+        const row     = btn.closest('tr');
+        const person  = row.dataset.person;
+        const phase   = row.querySelector('.pms-phase').textContent;
+        const tbody   = document.getElementById('pmsTableBody');
+        const allRows = Array.from(tbody.querySelectorAll('tr'));
+        const idx     = allRows.indexOf(row);
+
+        // 현재 행 상태 → 완료
+        row.dataset.status = 'done';
+        row.querySelector('.status-badge').className = 'status-badge done';
+        row.querySelector('.status-badge').textContent = '완료';
+        btn.textContent = '완료됨';
+        btn.classList.add('done-disabled');
+        btn.disabled = true;
+
+        // 다음 미완료 행 찾기
+        const nextRow = allRows.slice(idx + 1).find(r => r.dataset.status !== 'done');
+        const nextPerson = nextRow ? nextRow.dataset.person : null;
+        const nextPhase  = nextRow ? nextRow.querySelector('.pms-phase').textContent : null;
+
+        // 알림 모달 표시
+        const msg = nextRow
+            ? `<b>${person}</b>님의 <b>"${phase}"</b> 작업이 완료되었습니다.<br><br>
+               다음 담당자 <b>${nextPerson}</b>님에게 알림을 전송했습니다.<br>
+               <span style="font-size:12px; color:var(--muted);">메시지: "내 작업이 완료되었습니다. 확인 후 <b>${nextPhase}</b>를 시작해 주세요."</span>`
+            : `<b>${person}</b>님의 <b>"${phase}"</b> 작업이 완료되었습니다.<br><br>
+               <span style="font-size:12px; color:var(--muted);">모든 후속 일정이 없습니다. 프로젝트 일정을 확인해 주세요.</span>`;
+
+        document.getElementById('pmsNotifyMsg').innerHTML = msg;
+        document.getElementById('pmsNotifyModal').style.display = 'flex';
+    }
+
+    function closePmsNotify() {
+        document.getElementById('pmsNotifyModal').style.display = 'none';
+    }
+
+    /* ── 토스트 ── */
+    function showToast(msg) {
+        const t = document.getElementById('pmsToast');
+        t.textContent = msg;
+        t.style.display = 'block';
+        t.classList.add('show');
+        setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.style.display = 'none', 300); }, 2500);
+    }
+</script>
+</body>
+</html>

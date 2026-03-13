@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>프로젝트 목록 — WorkWith</title>
+    <link rel="stylesheet" th:href="@{/css/portal.css}">
+</head>
+<body>
+<div th:replace="~{fragments/layout :: header('projects')}"></div>
+
+<div class="wrap">
+    <!-- 페이지 타이틀 + 생성 버튼 -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; margin-bottom:14px;">
+        <h2 style="margin:0; font-size:16px; font-weight:800; color:var(--text);">전체 프로젝트</h2>
+        <button class="btn primary" style="font-size:12px;" onclick="openProjectModal()">+ 프로젝트 만들기</button>
+    </div>
+
+    <!-- 필터 바 -->
+    <div class="filter-bar">
+        <button class="filter-btn active" onclick="filterProjects('all', this)">전체</button>
+        <button class="filter-btn" onclick="filterProjects('active', this)">진행중</button>
+        <button class="filter-btn" onclick="filterProjects('pending', this)">대기</button>
+        <button class="filter-btn" onclick="filterProjects('done', this)">완료</button>
+    </div>
+
+    <!-- 프로젝트 카드 그리드 -->
+    <div id="projectGrid" class="project-grid">
+
+        <div class="project-card" data-status="active">
+            <div class="pc-header">
+                <span class="pc-title">2024 서비스 리뉴얼</span>
+                <span class="pill green">진행중</span>
+            </div>
+            <div class="pc-desc">메인 대시보드 및 이슈 관리 UI 전면 개편</div>
+            <div class="pc-meta">
+                <span>PM: 김민준</span>
+                <span>멤버 5명</span>
+                <span>마감: 2024-06-30</span>
+            </div>
+            <div class="pc-footer">
+                <div class="pc-progress-bar"><span style="width:62%"></span></div>
+                <span class="muted" style="font-size:11px;">62%</span>
+            </div>
+            <div style="margin-top:10px;">
+                <a href="/projects/detail" class="btn" style="font-size:11px; padding:4px 10px;">상세 보기</a>
+            </div>
+        </div>
+
+        <div class="project-card" data-status="active">
+            <div class="pc-header">
+                <span class="pc-title">모바일 앱 v2.0</span>
+                <span class="pill green">진행중</span>
+            </div>
+            <div class="pc-desc">iOS/Android 앱 2.0 출시 준비 및 QA</div>
+            <div class="pc-meta">
+                <span>PM: 이서연</span>
+                <span>멤버 8명</span>
+                <span>마감: 2024-07-15</span>
+            </div>
+            <div class="pc-footer">
+                <div class="pc-progress-bar"><span style="width:38%"></span></div>
+                <span class="muted" style="font-size:11px;">38%</span>
+            </div>
+            <div style="margin-top:10px;">
+                <a href="/projects/detail" class="btn" style="font-size:11px; padding:4px 10px;">상세 보기</a>
+            </div>
+        </div>
+
+        <div class="project-card" data-status="pending">
+            <div class="pc-header">
+                <span class="pc-title">B2B 파트너 포털</span>
+                <span class="pill" style="border-color:#ffe0b2; color:#b85c00; background:#fff8f0;">대기</span>
+            </div>
+            <div class="pc-desc">파트너사 전용 포털 사이트 기획 및 개발</div>
+            <div class="pc-meta">
+                <span>PM: 박도현</span>
+                <span>멤버 3명</span>
+                <span>마감: 미정</span>
+            </div>
+            <div class="pc-footer">
+                <div class="pc-progress-bar"><span style="width:5%"></span></div>
+                <span class="muted" style="font-size:11px;">5%</span>
+            </div>
+            <div style="margin-top:10px;">
+                <a href="/projects/detail" class="btn" style="font-size:11px; padding:4px 10px;">상세 보기</a>
+            </div>
+        </div>
+
+        <div class="project-card" data-status="done">
+            <div class="pc-header">
+                <span class="pc-title">회원가입 개편</span>
+                <span class="pill blue">완료</span>
+            </div>
+            <div class="pc-desc">소셜 로그인 통합 및 가입 플로우 단순화</div>
+            <div class="pc-meta">
+                <span>PM: 최지아</span>
+                <span>멤버 4명</span>
+                <span>마감: 2024-03-31</span>
+            </div>
+            <div class="pc-footer">
+                <div class="pc-progress-bar"><span style="width:100%; background:linear-gradient(90deg,#2bb24c,#4cd96a)"></span></div>
+                <span class="muted" style="font-size:11px;">100%</span>
+            </div>
+            <div style="margin-top:10px;">
+                <a href="/projects/detail" class="btn" style="font-size:11px; padding:4px 10px;">상세 보기</a>
+            </div>
+        </div>
+
+        <div class="project-card" data-status="active">
+            <div class="pc-header">
+                <span class="pc-title">데이터 분석 플랫폼</span>
+                <span class="pill green">진행중</span>
+            </div>
+            <div class="pc-desc">사내 KPI 대시보드 및 리포트 자동화 시스템</div>
+            <div class="pc-meta">
+                <span>PM: 정하은</span>
+                <span>멤버 6명</span>
+                <span>마감: 2024-08-01</span>
+            </div>
+            <div class="pc-footer">
+                <div class="pc-progress-bar"><span style="width:21%"></span></div>
+                <span class="muted" style="font-size:11px;">21%</span>
+            </div>
+            <div style="margin-top:10px;">
+                <a href="/projects/detail" class="btn" style="font-size:11px; padding:4px 10px;">상세 보기</a>
+            </div>
+        </div>
+
+        <div class="project-card" data-status="pending">
+            <div class="pc-header">
+                <span class="pc-title">CS 자동화 봇</span>
+                <span class="pill" style="border-color:#ffe0b2; color:#b85c00; background:#fff8f0;">대기</span>
+            </div>
+            <div class="pc-desc">고객 문의 자동 분류 및 1차 응대 봇 구축</div>
+            <div class="pc-meta">
+                <span>PM: 김민준</span>
+                <span>멤버 2명</span>
+                <span>마감: 미정</span>
+            </div>
+            <div class="pc-footer">
+                <div class="pc-progress-bar"><span style="width:0%"></span></div>
+                <span class="muted" style="font-size:11px;">0%</span>
+            </div>
+            <div style="margin-top:10px;">
+                <a href="/projects/detail" class="btn" style="font-size:11px; padding:4px 10px;">상세 보기</a>
+            </div>
+        </div>
+
+    </div>
+    <div id="noResults" class="meta" style="display:none; text-align:center; padding:30px 0;">
+        일치하는 프로젝트가 없습니다.
+    </div>
+
+    <div th:replace="~{fragments/layout :: footer}"></div>
+</div>
+
+<!-- 프로젝트 만들기 모달 -->
+<div id="projectModal" class="modal-overlay" style="display:none;" onclick="closeProjectModalOutside(event)">
+    <div class="modal-box">
+        <div class="modal-hd">
+            <span>새 프로젝트 만들기</span>
+            <button class="modal-close" onclick="closeProjectModal()">✕</button>
+        </div>
+        <div class="modal-bd">
+            <div class="field">
+                <label>프로젝트 이름 <span style="color:var(--warn)">*</span></label>
+                <input type="text" id="modalProjectName" placeholder="예: 2024 리뉴얼 프로젝트" autocomplete="off"/>
+            </div>
+            <div class="field">
+                <label>설명</label>
+                <input type="text" id="modalProjectDesc" placeholder="프로젝트 목적이나 범위를 간단히 입력하세요" autocomplete="off"/>
+            </div>
+            <div class="field">
+                <label>멤버 초대</label>
+                <div style="position:relative;">
+                    <input type="text" id="modalMemberSearch" placeholder="이름 또는 이메일 검색" autocomplete="off"
+                           oninput="searchMembers(this.value)" onfocus="showMemberDropdown()"/>
+                    <div id="memberDropdown" class="member-dropdown" style="display:none;">
+                        <div class="member-option" onclick="addMember('김민준', 'minjun@company.com')">김민준 <span class="muted">minjun@company.com</span></div>
+                        <div class="member-option" onclick="addMember('이서연', 'seoyeon@company.com')">이서연 <span class="muted">seoyeon@company.com</span></div>
+                        <div class="member-option" onclick="addMember('박도현', 'dohyun@company.com')">박도현 <span class="muted">dohyun@company.com</span></div>
+                        <div class="member-option" onclick="addMember('최지아', 'jia@company.com')">최지아 <span class="muted">jia@company.com</span></div>
+                        <div class="member-option" onclick="addMember('정하은', 'haeun@company.com')">정하은 <span class="muted">haeun@company.com</span></div>
+                    </div>
+                </div>
+                <div id="selectedMembers" class="selected-members" style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px;"></div>
+            </div>
+        </div>
+        <div class="modal-ft">
+            <button class="btn" onclick="closeProjectModal()">취소</button>
+            <button class="btn primary" onclick="submitProject()">프로젝트 생성</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const selectedMemberList = [];
+    let currentFilter = 'all';
+
+    function filterProjects(status, btn) {
+        currentFilter = status;
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        applyFilters();
+    }
+
+    function applyFilters() {
+        const cards = document.querySelectorAll('.project-card');
+        let visible = 0;
+        cards.forEach(card => {
+            const show = currentFilter === 'all' || card.dataset.status === currentFilter;
+            card.style.display = show ? '' : 'none';
+            if (show) visible++;
+        });
+        document.getElementById('noResults').style.display = visible === 0 ? '' : 'none';
+    }
+
+    function openProjectModal() {
+        document.getElementById('projectModal').style.display = 'flex';
+        document.getElementById('modalProjectName').focus();
+    }
+    function closeProjectModal() { document.getElementById('projectModal').style.display = 'none'; }
+    function closeProjectModalOutside(e) { if (e.target.id === 'projectModal') closeProjectModal(); }
+    function showMemberDropdown() {
+        document.getElementById('memberDropdown').style.display = 'block';
+        document.addEventListener('click', hideMemberDropdownOutside);
+    }
+    function hideMemberDropdownOutside(e) {
+        const dd = document.getElementById('memberDropdown');
+        const input = document.getElementById('modalMemberSearch');
+        if (!dd.contains(e.target) && e.target !== input) {
+            dd.style.display = 'none';
+            document.removeEventListener('click', hideMemberDropdownOutside);
+        }
+    }
+    function searchMembers(val) {
+        document.querySelectorAll('.member-option').forEach(opt => {
+            opt.style.display = opt.textContent.toLowerCase().includes(val.toLowerCase()) ? '' : 'none';
+        });
+        document.getElementById('memberDropdown').style.display = 'block';
+    }
+    function addMember(name, email) {
+        if (selectedMemberList.find(m => m.email === email)) return;
+        selectedMemberList.push({ name, email });
+        renderSelectedMembers();
+        document.getElementById('modalMemberSearch').value = '';
+        document.getElementById('memberDropdown').style.display = 'none';
+    }
+    function removeMember(email) {
+        const idx = selectedMemberList.findIndex(m => m.email === email);
+        if (idx > -1) selectedMemberList.splice(idx, 1);
+        renderSelectedMembers();
+    }
+    function renderSelectedMembers() {
+        document.getElementById('selectedMembers').innerHTML = selectedMemberList.map(m =>
+            `<span class="member-tag">${m.name} <button onclick="removeMember('${m.email}')" class="tag-remove">✕</button></span>`
+        ).join('');
+    }
+    function submitProject() {
+        const name = document.getElementById('modalProjectName').value.trim();
+        if (!name) { alert('프로젝트 이름을 입력하세요.'); return; }
+        alert(`"${name}" 프로젝트가 생성되었습니다. (더미 동작)`);
+        closeProjectModal();
+        document.getElementById('modalProjectName').value = '';
+        document.getElementById('modalProjectDesc').value = '';
+        selectedMemberList.length = 0;
+        renderSelectedMembers();
+    }
+</script>
+</body>
+</html>

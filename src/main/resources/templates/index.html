@@ -14,7 +14,10 @@
     <div class="layout">
         <!-- LEFT: 내 프로젝트 목록 -->
         <aside class="panel">
-            <div class="hd">내 프로젝트 목록</div>
+            <div class="hd" style="display:flex; justify-content:space-between; align-items:center;">
+                <span>내 프로젝트 목록</span>
+                <a href="/projects" class="btn" style="font-size:11px; padding:4px 8px;">전체 보기</a>
+            </div>
             <div class="bd" style="padding:10px 12px;">
 
                 <!-- 비로그인: blur -->
@@ -45,6 +48,12 @@
                          class="meta" style="padding:10px 0;">
                         참여 중인 프로젝트가 없습니다.
                     </div>
+                </div>
+
+                <!-- 프로젝트 만들기 버튼 (로그인 시 표시) -->
+                <div sec:authorize="isAuthenticated()" style="margin-top:10px;">
+                    <button class="btn primary" style="width:100%; font-size:12px;"
+                            onclick="openProjectModal()">+ 프로젝트 만들기</button>
                 </div>
 
             </div>
@@ -180,6 +189,116 @@
     <div th:replace="~{fragments/layout :: footer}"></div>
 </div>
 <script th:src="@{/js/portal.js}"></script>
+
+<!-- 프로젝트 만들기 모달 -->
+<div id="projectModal" class="modal-overlay" style="display:none;" onclick="closeProjectModalOutside(event)">
+    <div class="modal-box">
+        <div class="modal-hd">
+            <span>새 프로젝트 만들기</span>
+            <button class="modal-close" onclick="closeProjectModal()">✕</button>
+        </div>
+        <div class="modal-bd">
+            <div class="field">
+                <label>프로젝트 이름 <span style="color:var(--warn)">*</span></label>
+                <input type="text" id="modalProjectName" placeholder="예: 2024 리뉴얼 프로젝트" autocomplete="off"/>
+            </div>
+            <div class="field">
+                <label>설명</label>
+                <input type="text" id="modalProjectDesc" placeholder="프로젝트 목적이나 범위를 간단히 입력하세요" autocomplete="off"/>
+            </div>
+            <div class="field">
+                <label>멤버 초대</label>
+                <div style="position:relative;">
+                    <input type="text" id="modalMemberSearch" placeholder="이름 또는 이메일 검색" autocomplete="off"
+                           oninput="searchMembers(this.value)" onfocus="showMemberDropdown()"/>
+                    <div id="memberDropdown" class="member-dropdown" style="display:none;">
+                        <div class="member-option" onclick="addMember('김민준', 'minjun@company.com')">김민준 <span class="muted">minjun@company.com</span></div>
+                        <div class="member-option" onclick="addMember('이서연', 'seoyeon@company.com')">이서연 <span class="muted">seoyeon@company.com</span></div>
+                        <div class="member-option" onclick="addMember('박도현', 'dohyun@company.com')">박도현 <span class="muted">dohyun@company.com</span></div>
+                        <div class="member-option" onclick="addMember('최지아', 'jia@company.com')">최지아 <span class="muted">jia@company.com</span></div>
+                        <div class="member-option" onclick="addMember('정하은', 'haeun@company.com')">정하은 <span class="muted">haeun@company.com</span></div>
+                    </div>
+                </div>
+                <div id="selectedMembers" class="selected-members" style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px;"></div>
+            </div>
+        </div>
+        <div class="modal-ft">
+            <button class="btn" onclick="closeProjectModal()">취소</button>
+            <button class="btn primary" onclick="submitProject()">프로젝트 생성</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const selectedMemberList = [];
+
+    function openProjectModal() {
+        document.getElementById('projectModal').style.display = 'flex';
+        document.getElementById('modalProjectName').focus();
+    }
+
+    function closeProjectModal() {
+        document.getElementById('projectModal').style.display = 'none';
+    }
+
+    function closeProjectModalOutside(e) {
+        if (e.target === document.getElementById('projectModal')) closeProjectModal();
+    }
+
+    function showMemberDropdown() {
+        document.getElementById('memberDropdown').style.display = 'block';
+        document.addEventListener('click', hideMemberDropdownOutside);
+    }
+
+    function hideMemberDropdownOutside(e) {
+        const dd = document.getElementById('memberDropdown');
+        const input = document.getElementById('modalMemberSearch');
+        if (!dd.contains(e.target) && e.target !== input) {
+            dd.style.display = 'none';
+            document.removeEventListener('click', hideMemberDropdownOutside);
+        }
+    }
+
+    function searchMembers(val) {
+        const opts = document.querySelectorAll('.member-option');
+        opts.forEach(opt => {
+            opt.style.display = opt.textContent.toLowerCase().includes(val.toLowerCase()) ? '' : 'none';
+        });
+        document.getElementById('memberDropdown').style.display = 'block';
+    }
+
+    function addMember(name, email) {
+        if (selectedMemberList.find(m => m.email === email)) return;
+        selectedMemberList.push({ name, email });
+        renderSelectedMembers();
+        document.getElementById('modalMemberSearch').value = '';
+        document.getElementById('memberDropdown').style.display = 'none';
+    }
+
+    function removeMember(email) {
+        const idx = selectedMemberList.findIndex(m => m.email === email);
+        if (idx > -1) selectedMemberList.splice(idx, 1);
+        renderSelectedMembers();
+    }
+
+    function renderSelectedMembers() {
+        const container = document.getElementById('selectedMembers');
+        container.innerHTML = selectedMemberList.map(m =>
+            `<span class="member-tag">${m.name} <button onclick="removeMember('${m.email}')" class="tag-remove">✕</button></span>`
+        ).join('');
+    }
+
+    function submitProject() {
+        const name = document.getElementById('modalProjectName').value.trim();
+        if (!name) { alert('프로젝트 이름을 입력하세요.'); return; }
+        alert(`"${name}" 프로젝트가 생성되었습니다. (더미 동작)`);
+        closeProjectModal();
+        document.getElementById('modalProjectName').value = '';
+        document.getElementById('modalProjectDesc').value = '';
+        selectedMemberList.length = 0;
+        renderSelectedMembers();
+    }
+</script>
 </body>
 </html>
 
