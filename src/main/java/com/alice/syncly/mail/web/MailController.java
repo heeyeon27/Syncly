@@ -39,7 +39,7 @@ public class MailController {
         } catch (Exception e) {
             log.error("[MailController] 슬랙 초대 메일 발송 실패 - email={}, 원인={}", email, e.getMessage(), e);
             return ResponseEntity.internalServerError()
-                    .body(Map.of("message", "메일 발송 실패: " + e.getMessage()));
+                    .body(Map.of("message", "메일 발송에 실패했습니다. 잠시 후 다시 시도해주세요."));
         }
     }
 }
