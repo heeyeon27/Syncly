@@ -103,6 +103,11 @@ public class IssueService {
                 .collect(Collectors.toList());
     }
 
+    public long countUrgentByAssignee(Long memberId) {
+        return issueRepository.countByAssigneeAndPriorityExcludingStatus(
+                memberId, IssuePriority.URGENT, IssueStatus.DONE);
+    }
+
     @Transactional
     public void updateStatus(Long issueId, Long memberId, String newStatus) {
         Issue issue = issueRepository.findById(issueId)

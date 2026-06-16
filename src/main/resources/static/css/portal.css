@@ -429,8 +429,10 @@ input[type="text"], input[type="password"], input[type="date"] {
   border-bottom: 1px dashed #e2e7f5;
 }
 .task-item:last-child { border-bottom: 0; }
-.task-title { font-size: 13px; font-weight: 600; color: var(--text); }
-.task-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.task-item { cursor: pointer; }
+.task-project { font-size: 11px; color: var(--text); font-weight: 600; margin-bottom: 2px; }
+.task-name { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.task-meta { font-size: 12px; color: var(--muted); margin-top: 2px; text-align: right; }
 
 /* ===== 모달 ===== */
 .modal-overlay {

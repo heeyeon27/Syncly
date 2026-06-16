@@ -1,5 +1,6 @@
 package com.alice.syncly.project.service;
 
+import com.alice.syncly.issue.domain.IssueStatus;
 import com.alice.syncly.issue.repository.IssueRepository;
 import com.alice.syncly.project.domain.Project;
 import com.alice.syncly.project.domain.ProjectMember;
@@ -17,6 +18,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -80,7 +83,7 @@ public class ProjectScheduleService {
         List<Long> scheduleIds = schedules.stream().map(ProjectSchedule::getId).collect(Collectors.toList());
         Map<Long, Integer> issueCounts = new HashMap<>();
         if (!scheduleIds.isEmpty()) {
-            issueRepository.countByScheduleIds(scheduleIds).forEach(row ->
+            issueRepository.countByScheduleIds(scheduleIds, IssueStatus.DONE).forEach(row ->
                     issueCounts.put((Long) row[0], ((Long) row[1]).intValue()));
         }
 
@@ -88,6 +91,27 @@ public class ProjectScheduleService {
         return schedules.stream()
                 .map(s -> new ProjectScheduleItemDto(s, counter.getAndIncrement(),
                         issueCounts.getOrDefault(s.getId(), 0)))
+                .collect(Collectors.toList());
+    }
+
+    /** 이번 주(월~일) 기간과 겹치는 미완료 일정 목록 - 담당자 필터링 */
+    public List<ProjectScheduleItemDto> findThisWeekSchedules(Long memberId) {
+        LocalDate today     = LocalDate.now();
+        LocalDate weekStart = today.with(DayOfWeek.MONDAY);
+        LocalDate weekEnd   = today.with(DayOfWeek.SUNDAY);
+        List<ProjectSchedule> list = scheduleRepository.findThisWeekSchedules(weekStart, weekEnd, memberId);
+        AtomicInteger counter = new AtomicInteger(1);
+        return list.stream()
+                .map(s -> new ProjectScheduleItemDto(s, counter.getAndIncrement(), 0))
+                .collect(Collectors.toList());
+    }
+
+    /** 종료일이 지났으나 완료되지 않은 지연 일정 목록 - 담당자 필터링 */
+    public List<ProjectScheduleItemDto> findOverdueSchedules(Long memberId) {
+        List<ProjectSchedule> list = scheduleRepository.findOverdueSchedules(LocalDate.now(), memberId);
+        AtomicInteger counter = new AtomicInteger(1);
+        return list.stream()
+                .map(s -> new ProjectScheduleItemDto(s, counter.getAndIncrement(), 0))
                 .collect(Collectors.toList());
     }
 

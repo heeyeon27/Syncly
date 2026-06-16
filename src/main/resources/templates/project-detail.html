@@ -181,7 +181,7 @@
                             </td>
                         </tr>
                         </th:block>
-                        <tr th:if="${#lists.isEmpty(issues)}">
+                        <tr id="issueEmptyRow" th:if="${#lists.isEmpty(issues)}">
                             <td colspan="6" class="meta"
                                 style="text-align:center; padding:20px 0;">
                                 등록된 이슈가 없습니다.
@@ -575,7 +575,7 @@
             if (!r.ok) return r.json().then(e => { throw new Error(e.message || '등록에 실패했습니다.'); });
             closePmsModal();
             clearPmsForm();
-            window.location.reload();
+            window.location.href = '/projects/' + PROJECT_ID + '?tab=pms';
         })
         .catch(e => alert(e.message));
     }
@@ -627,7 +627,7 @@
 
     function closePmsNotify() {
         document.getElementById('pmsNotifyModal').style.display = 'none';
-        window.location.reload();
+        window.location.href = '/projects/' + PROJECT_ID + '?tab=pms';
     }
 
     /* ── 이슈 등록 모달 ── */
@@ -728,7 +728,7 @@
             }
             // 이슈 탭 테이블에 행 추가
             const tbody = document.getElementById('issueTableBody');
-            const emptyRow = tbody.querySelector('td[colspan]')?.closest('tr');
+            const emptyRow = document.getElementById('issueEmptyRow');
             if (emptyRow) emptyRow.remove();
             const isMyIssue = issue.assigneeMemberId && issue.assigneeMemberId === CURRENT_MEMBER_ID;
             const statusOptions = [
@@ -745,20 +745,21 @@
             tr.dataset.issueId = issue.id;
             tr.setAttribute('onclick', 'toggleIssueRow(this)');
             tr.innerHTML = `
-                <td><span class="priority-badge ${PRIORITY_CLASS[issue.priority]}">${PRIORITY_LABEL[issue.priority]}</span></td>
-                <td>${issue.title}</td>
-                <td>${issue.assigneeName || '-'}</td>
+                <td><span class="priority-badge ${PRIORITY_CLASS[issue.priority] || ''}">${PRIORITY_LABEL[issue.priority] || issue.priority}</span></td>
+                <td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${issue.title || ''}</td>
+                <td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${issue.assigneeName || '-'}</td>
                 <td>${issue.dueDateLabel || '-'}</td>
                 <td onclick="event.stopPropagation()"><select class="issue-status-select" data-issue-id="${issue.id}"
                             ${isMyIssue ? '' : 'disabled'}
                             onchange="updateIssueStatus(this)">${optHtml}</select></td>
-                <td><span class="issue-status-badge ${badgeClass}">${badgeLabel}</span>
-                    <span class="notice-chevron" style="float:right; margin-right:4px;">▼</span></td>`;
+                <td style="display:flex;align-items:center;justify-content:space-between;">
+                    <span class="issue-status-badge ${badgeClass}">${badgeLabel}</span>
+                    <span class="notice-chevron">▼</span>
+                </td>`;
             const descTr = document.createElement('tr');
             descTr.className = 'issue-desc-row';
             descTr.style.display = 'none';
-            const descText = issue.description || '';
-            descTr.innerHTML = `<td colspan="6" style="padding:10px 16px; background:#f7f9ff; color:#444; font-size:13px; border-bottom:1px solid #e7ecf8;">${descText || '<span style="color:#aaa;">설명이 없습니다.</span>'}</td>`;
+            descTr.innerHTML = `<td colspan="6"><div class="issue-item-body">${issue.description || '설명이 없습니다.'}</div></td>`;
             tbody.appendChild(tr);
             tbody.appendChild(descTr);
         })
@@ -998,6 +999,16 @@
                 if (item && !item.classList.contains('open')) {
                     toggleNotice(item);
                     item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }, 50);
+        }
+
+        if (openId && tab === 'issues') {
+            setTimeout(function () {
+                const row = document.querySelector(`.issue-main-row[data-issue-id="${openId}"]`);
+                if (row && !row.classList.contains('open')) {
+                    toggleIssueRow(row);
+                    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
             }, 50);
         }

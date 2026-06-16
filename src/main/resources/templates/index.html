@@ -88,61 +88,46 @@
                 </div>
 
                 <div style="margin-top:14px; display:grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                    <!-- 최근 방문 프로젝트 (deadline 필드 추가 전: createdAt 역순) -->
+                    <!-- 지연된 작업 (종료일 초과 미완료) -->
                     <section class="panel" style="border:1px solid #e7ecf8;">
-                        <div class="hd">최근 방문 프로젝트</div>
-                        <div class="bd">
-
-                            <!-- 비로그인 blur -->
-                            <div sec:authorize="isAnonymous()" class="blur-wrap" style="min-height:100px;">
-                                <div class="blur-content">
-                                    <ul class="list">
-                                        <li><div><b>프로젝트 A</b><div class="meta">D-3</div></div><span class="pill">상태</span></li>
-                                        <li><div><b>프로젝트 B</b><div class="meta">D-7</div></div><span class="pill">상태</span></li>
-                                    </ul>
-                                </div>
-                                <div class="blur-msg">로그인 후 데이터를 확인할 수 있습니다</div>
-                            </div>
-
-                            <!-- 로그인 -->
-                            <div sec:authorize="isAuthenticated()">
-                                <ul class="list"
-                                    th:if="${recentProjects != null and !#lists.isEmpty(recentProjects)}">
-                                    <li th:each="p : ${recentProjects}"
-                                        style="cursor:pointer;"
-                                        th:onclick="|location.href='/projects/' + ${p.id}|">
-                                        <div>
-                                            <b th:text="${p.name}">프로젝트명</b>
-                                            <div class="meta">등록: <span th:text="${#temporals.format(p.createdAt, 'MM-dd')}">날짜</span></div>
-                                        </div>
-                                        <span th:class="${p.status.name() == 'IN_PROGRESS'} ? 'pill green' : 'pill blue'"
-                                              th:text="${p.status.name() == 'IN_PROGRESS'} ? '진행 중' : '완료'">상태</span>
-                                    </li>
-                                </ul>
-                                <div th:if="${recentProjects == null or #lists.isEmpty(recentProjects)}"
-                                     class="meta" style="padding:8px 0;">
-                                    등록된 프로젝트가 없습니다.
+                        <div class="hd">지연된 작업</div>
+                        <div class="bd" style="padding:8px 12px;">
+                            <div th:if="${overdueTasks != null and !#lists.isEmpty(overdueTasks)}">
+                                <div class="task-item" th:each="t : ${overdueTasks}"
+                                     th:onclick="|location.href='/projects/' + ${t.projectId}|">
+                                    <div class="task-project" th:text="${t.projectName}">프로젝트명</div>
+                                    <div class="task-name" th:text="${t.phaseName != '-'} ? ${t.phaseName} : ${t.title}">업무명</div>
+                                    <div class="task-meta">
+                                        <span th:text="${t.statusLabel}">상태</span>
+                                        / ~<span th:text="${t.endDateLabel}">날짜</span>
+                                    </div>
                                 </div>
                             </div>
-
+                            <div th:if="${overdueTasks == null or #lists.isEmpty(overdueTasks)}"
+                                 class="meta" style="padding:8px 0;">
+                                지연된 작업이 없습니다.
+                            </div>
                         </div>
                     </section>
 
                     <!-- 이번 주 마감 작업 -->
                     <section class="panel" style="border:1px solid #e7ecf8;">
                         <div class="hd">이번 주 마감 작업</div>
-                        <div class="bd">
-                            <div class="task-item">
-                                <div class="task-title">로그인 실패 로그 정리</div>
-                                <div class="task-meta">백엔드 · 03/10 · 진행중</div>
+                        <div class="bd" style="padding:8px 12px;">
+                            <div th:if="${thisWeekTasks != null and !#lists.isEmpty(thisWeekTasks)}">
+                                <div class="task-item" th:each="t : ${thisWeekTasks}"
+                                     th:onclick="|location.href='/projects/' + ${t.projectId}|">
+                                    <div class="task-project" th:text="${t.projectName}">프로젝트명</div>
+                                    <div class="task-name" th:text="${t.phaseName != '-'} ? ${t.phaseName} : ${t.title}">업무명</div>
+                                    <div class="task-meta">
+                                        <span th:text="${t.statusLabel}">상태</span>
+                                        / ~<span th:text="${t.endDateLabel}">날짜</span>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="task-item">
-                                <div class="task-title">협업 가이드 문서 초안</div>
-                                <div class="task-meta">PM · 03/12 · 대기</div>
-                            </div>
-                            <div class="task-item">
-                                <div class="task-title">검색 결과 UX 와이어프레임</div>
-                                <div class="task-meta">디자인 · 03/14 · 진행중</div>
+                            <div th:if="${thisWeekTasks == null or #lists.isEmpty(thisWeekTasks)}"
+                                 class="meta" style="padding:8px 0;">
+                                이번 주 마감 작업이 없습니다.
                             </div>
                         </div>
                     </section>
@@ -185,7 +170,7 @@
                                 <li th:each="issue : ${myIssues}"
                                     th:id="'issue-' + ${issue.id}"
                                     class="unread-notice-item"
-                                    th:onclick="|location.href='/projects/' + ${issue.projectId} + '?tab=issues'|"
+                                    th:onclick="|location.href='/projects/' + ${issue.projectId} + '?tab=issues&openId=' + ${issue.id}|"
                                     style="cursor:pointer; display:flex; align-items:center; gap:6px; overflow:hidden;">
                                     <span th:class="|priority-badge ${issue.priorityClass}|"
                                           th:text="${issue.priorityLabel}"

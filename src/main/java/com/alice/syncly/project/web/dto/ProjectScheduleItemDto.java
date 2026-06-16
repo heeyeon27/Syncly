@@ -43,6 +43,8 @@ public class ProjectScheduleItemDto {
 
     private final Long id;
     private final int rowNum;
+    private final Long projectId;
+    private final String projectName;
     private final String role;
     private final String roleClass;
     private final String assigneeInitial;
@@ -61,6 +63,8 @@ public class ProjectScheduleItemDto {
     public ProjectScheduleItemDto(ProjectSchedule s, int rowNum, int issueCount) {
         this.id = s.getId();
         this.rowNum = rowNum;
+        this.projectId = s.getProject() != null ? s.getProject().getId() : null;
+        this.projectName = s.getProject() != null ? s.getProject().getName() : "-";
         this.issueCount = issueCount;
         String rawRole = s.getRoleType() != null ? s.getRoleType() : "-";
         this.role      = ROLE_LABEL_MAP.getOrDefault(rawRole, rawRole);
@@ -87,6 +91,8 @@ public class ProjectScheduleItemDto {
 
     public Long getId()             { return id; }
     public int getRowNum()          { return rowNum; }
+    public Long getProjectId()      { return projectId; }
+    public String getProjectName()  { return projectName; }
     public String getRole()         { return role; }
     public String getRoleClass()    { return roleClass; }
     public String getAssigneeInitial() { return assigneeInitial; }
