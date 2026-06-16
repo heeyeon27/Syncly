@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+    공용 멤버 초대 입력 fragment
+    사용하는 페이지에서 반드시 아래 JS 함수를 정의해야 합니다:
+      inviteSearchMembers(val), inviteAddMember(id, name, email), inviteRemoveMember(id), inviteRenderChips()
+-->
+<div th:fragment="inviteField">
+    <div style="position:relative;">
+        <input type="text" id="inviteSearchInput"
+               placeholder="이름 또는 이메일 검색" autocomplete="off"
+               oninput="inviteSearchMembers(this.value)"
+               onfocus="inviteSearchMembers(this.value)"/>
+        <div id="inviteDropdown" class="member-dropdown" style="display:none;"></div>
+    </div>
+    <div id="inviteChips" class="selected-members"
+         style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px;"></div>
+</div>
+</body>
+</html>

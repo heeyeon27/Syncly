@@ -1,5 +1,6 @@
 package com.alice.syncly.member.service;
 
+import com.alice.syncly.member.domain.ApprovalStatus;
 import com.alice.syncly.member.domain.Member;
 import com.alice.syncly.member.domain.Role;
 import com.alice.syncly.member.repository.MemberRepository;
@@ -43,5 +44,9 @@ public class MemberService {
 
     public List<Member> findAll() {
         return memberRepository.findAll();
+    }
+
+    public List<Member> searchApproved(String q, Long excludeId) {
+        return memberRepository.searchByNameOrEmailAndStatus(q, ApprovalStatus.APPROVED, excludeId);
     }
 }

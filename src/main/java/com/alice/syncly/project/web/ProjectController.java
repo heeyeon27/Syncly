@@ -1,9 +1,12 @@
 package com.alice.syncly.project.web;
 
+import com.alice.syncly.auth.service.MemberUserDetails;
 import com.alice.syncly.project.domain.Project;
 import com.alice.syncly.project.service.ProjectService;
 import com.alice.syncly.project.web.dto.ProjectCreateRequest;
+import com.alice.syncly.project.web.dto.ProjectResponse;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
@@ -20,15 +23,22 @@ public class ProjectController {
     }
 
     @PostMapping
-    public ResponseEntity<Project> create(@RequestBody ProjectCreateRequest request) {
+    public ResponseEntity<ProjectResponse> create(
+            @RequestBody ProjectCreateRequest request,
+            @AuthenticationPrincipal MemberUserDetails userDetails) {
+
+        Long ownerId = userDetails.getMember().getId();
         Project project = projectService.createProject(
                 request.getName(),
                 request.getDescription(),
-                request.getOwnerId()
+                request.getStartDate(),
+                request.getEndDate(),
+                ownerId,
+                request.getInvitedMemberIds()
         );
         return ResponseEntity
                 .created(URI.create("/api/projects/" + project.getId()))
-                .body(project);
+                .body(new ProjectResponse(project));
     }
 
     @GetMapping

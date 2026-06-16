@@ -2,6 +2,7 @@ package com.alice.syncly.issue.domain;
 
 import com.alice.syncly.member.domain.Member;
 import com.alice.syncly.project.domain.Project;
+import com.alice.syncly.project.domain.ProjectSchedule;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -27,6 +28,10 @@ public class Issue {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assignee_id")
     private Member assignee;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "schedule_id")
+    private ProjectSchedule schedule;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reporter_id", nullable = false)
@@ -87,4 +92,6 @@ public class Issue {
     public void setPriority(IssuePriority priority) { this.priority = priority; }
     public void setStatus(IssueStatus status) { this.status = status; }
     public void setDueDate(LocalDate dueDate) { this.dueDate = dueDate; }
+    public ProjectSchedule getSchedule() { return schedule; }
+    public void setSchedule(ProjectSchedule schedule) { this.schedule = schedule; }
 }

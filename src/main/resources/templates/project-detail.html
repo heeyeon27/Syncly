@@ -10,7 +10,7 @@
 <body>
 <div th:replace="~{fragments/layout :: header('project-detail')}"></div>
 
-<div class="wrap">
+<div id="pageWrap" class="wrap" th:attr="data-project-id=${project.id}">
 
     <!-- 브레드크럼 -->
     <div class="breadcrumb">
@@ -18,7 +18,7 @@
         <span>›</span>
         <a th:href="@{/projects}">프로젝트 목록</a>
         <span>›</span>
-        <span>2024 서비스 리뉴얼</span>
+        <span th:text="${project.name}">프로젝트명</span>
     </div>
 
     <!-- 프로젝트 헤더 -->
@@ -26,27 +26,27 @@
         <div class="bd" style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
             <div>
                 <div style="display:flex; align-items:center; gap:10px;">
-                    <h1 class="pj-title">2024 서비스 리뉴얼</h1>
-                    <span class="pill green">진행중</span>
+                    <h1 class="pj-title" th:text="${project.name}">프로젝트명</h1>
+                    <span th:class="|pill ${project.statusBadgeClass}|" th:text="${project.statusLabel}">상태</span>
                 </div>
-                <div class="pj-desc">메인 대시보드 및 이슈 관리 UI 전면 개편. 사용자 경험 개선 및 성능 최적화 포함.</div>
+                <div class="pj-desc" th:text="${project.description}">설명</div>
                 <div class="pj-info-row">
-                    <span><b>PM</b> 김민준</span>
-                    <span><b>시작일</b> 2024-01-15</span>
-                    <span><b>마감일</b> 2024-06-30</span>
-                    <span><b>멤버</b> 5명</span>
-                    <span><b>진행률</b> 62%</span>
+                    <span><b>PM</b> <span th:text="${project.ownerName}">-</span></span>
+                    <span><b>시작일</b> <span th:text="${project.startDateLabel}">-</span></span>
+                    <span><b>마감일</b> <span th:text="${project.endDateLabel}">-</span></span>
+                    <span><b>멤버</b> <span id="memberCountLabel" th:text="${project.memberCount}">0</span>명</span>
+                    <span><b>진행률</b> <span th:text="${project.progressRate}">0</span>%</span>
                 </div>
             </div>
             <div style="display:flex; gap:8px; align-items:flex-start;">
-                <button class="btn" style="font-size:12px;">멤버 관리</button>
-                <button class="btn primary" style="font-size:12px;">이슈 추가</button>
+                <button class="btn" style="font-size:12px;" onclick="openMemberAddModal()">멤버 관리</button>
+                <button class="btn primary" style="font-size:12px;" onclick="openIssueModal()">이슈 추가</button>
             </div>
         </div>
         <!-- 전체 진행 바 -->
         <div style="padding: 0 12px 12px;">
             <div class="pc-progress-bar" style="height:10px;">
-                <span style="width:62%"></span>
+                <span th:style="|width:${project.progressRate}%|"></span>
             </div>
         </div>
     </div>
@@ -80,140 +80,45 @@
                             <th>상태</th>
                             <th class="pms-note-col">메모</th>
                             <th style="width:72px; text-align:center;">액션</th>
+                            <th style="width:60px; text-align:center;">이슈</th>
                         </tr>
                     </thead>
                     <tbody id="pmsTableBody">
-                        <tr data-idx="1" data-person="김민준" data-status="done">
-                            <td class="pms-idx">1</td>
-                            <td><span class="role-badge role-pm">PM</span></td>
-                            <td><span class="avatar-circle">김</span> 김민준</td>
-                            <td class="pms-phase">기획 1차</td>
-                            <td>2024-01-15</td>
-                            <td>2024-02-29</td>
-                            <td><span class="status-badge done">완료</span></td>
-                            <td class="pms-note">프로젝트 범위 및 일정 확정</td>
-                            <td class="pms-action"><button class="btn-done done-disabled" disabled>완료됨</button></td>
+                        <tr th:each="s : ${schedules}"
+                            th:attr="data-idx=${s.rowNum}, data-person=${s.assigneeName}, data-status=${s.statusClass}, data-schedule-id=${s.id}, data-assignee-member-id=${s.assigneeMemberId}">
+                            <td class="pms-idx" th:text="${s.rowNum}">1</td>
+                            <td><span th:class="|role-badge ${s.roleClass}|" th:text="${s.role}">역할</span></td>
+                            <td>
+                                <span th:class="${s.assigneeName == '미배정'} ? 'avatar-circle av-muted' : 'avatar-circle'"
+                                      th:text="${s.assigneeInitial}">김</span>
+                                <span th:text="${s.assigneeName}">담당자</span>
+                            </td>
+                            <td class="pms-phase">
+                                <span th:text="${s.phaseName}">차수</span>
+                                <div class="meta" th:if="${s.title != null and s.title != '-'}"
+                                     th:text="${s.title}" style="font-size:11px; margin-top:2px;"></div>
+                            </td>
+                            <td th:text="${s.startDateLabel}">-</td>
+                            <td th:text="${s.endDateLabel}">-</td>
+                            <td><span th:class="|status-badge ${s.statusClass}|" th:text="${s.statusLabel}">상태</span></td>
+                            <td class="pms-note" th:text="${s.memo}">-</td>
+                            <td class="pms-action">
+                                <button th:if="${s.done}"
+                                        class="btn-done done-disabled" disabled>완료됨</button>
+                                <button th:unless="${s.done}"
+                                        class="btn-done"
+                                        th:attr="onclick=|completePms(this, ${s.id})|">완료</button>
+                            </td>
+                            <td style="text-align:center;">
+                                <button class="btn-issue-count"
+                                        th:attr="onclick=|openPmsIssueModal(${s.id})|"
+                                        th:text="|⚠️ ${s.issueCount}|">⚠️ 0</button>
+                            </td>
                         </tr>
-                        <tr data-idx="2" data-person="이서연" data-status="done">
-                            <td class="pms-idx">2</td>
-                            <td><span class="role-badge role-design">디자인</span></td>
-                            <td><span class="avatar-circle">이</span> 이서연</td>
-                            <td class="pms-phase">디자인 1차</td>
-                            <td>2024-01-22</td>
-                            <td>2024-03-15</td>
-                            <td><span class="status-badge done">완료</span></td>
-                            <td class="pms-note">와이어프레임 및 UI 시안</td>
-                            <td class="pms-action"><button class="btn-done done-disabled" disabled>완료됨</button></td>
-                        </tr>
-                        <tr data-idx="3" data-person="박도현" data-status="done">
-                            <td class="pms-idx">3</td>
-                            <td><span class="role-badge role-backend">백엔드</span></td>
-                            <td><span class="avatar-circle">박</span> 박도현</td>
-                            <td class="pms-phase">API 개발 1차</td>
-                            <td>2024-01-29</td>
-                            <td>2024-03-22</td>
-                            <td><span class="status-badge done">완료</span></td>
-                            <td class="pms-note">REST API 설계 및 개발</td>
-                            <td class="pms-action"><button class="btn-done done-disabled" disabled>완료됨</button></td>
-                        </tr>
-                        <tr data-idx="4" data-person="최지아" data-status="done">
-                            <td class="pms-idx">4</td>
-                            <td><span class="role-badge role-publish">퍼블</span></td>
-                            <td><span class="avatar-circle">최</span> 최지아</td>
-                            <td class="pms-phase">마크업 1차</td>
-                            <td>2024-02-05</td>
-                            <td>2024-03-31</td>
-                            <td><span class="status-badge done">완료</span></td>
-                            <td class="pms-note">HTML/CSS 마크업 1차</td>
-                            <td class="pms-action"><button class="btn-done done-disabled" disabled>완료됨</button></td>
-                        </tr>
-                        <tr data-idx="5" data-person="정하은" data-status="done">
-                            <td class="pms-idx">5</td>
-                            <td><span class="role-badge role-frontend">프론트</span></td>
-                            <td><span class="avatar-circle">정</span> 정하은</td>
-                            <td class="pms-phase">개발 1차</td>
-                            <td>2024-02-19</td>
-                            <td>2024-04-12</td>
-                            <td><span class="status-badge done">완료</span></td>
-                            <td class="pms-note">React 컴포넌트 개발</td>
-                            <td class="pms-action"><button class="btn-done done-disabled" disabled>완료됨</button></td>
-                        </tr>
-                        <tr data-idx="6" data-person="김민준" data-status="active">
-                            <td class="pms-idx">6</td>
-                            <td><span class="role-badge role-pm">PM</span></td>
-                            <td><span class="avatar-circle">김</span> 김민준</td>
-                            <td class="pms-phase">기획 2차</td>
-                            <td>2024-03-01</td>
-                            <td>2024-06-30</td>
-                            <td><span class="status-badge active">진행중</span></td>
-                            <td class="pms-note">전체 일정 조율 및 리소스 관리</td>
-                            <td class="pms-action"><button class="btn-done" onclick="completePms(this)">완료</button></td>
-                        </tr>
-                        <tr data-idx="7" data-person="이서연" data-status="active">
-                            <td class="pms-idx">7</td>
-                            <td><span class="role-badge role-design">디자인</span></td>
-                            <td><span class="avatar-circle">이</span> 이서연</td>
-                            <td class="pms-phase">디자인 2차</td>
-                            <td>2024-03-18</td>
-                            <td>2024-05-31</td>
-                            <td><span class="status-badge active">진행중</span></td>
-                            <td class="pms-note">컴포넌트 시스템 구축</td>
-                            <td class="pms-action"><button class="btn-done" onclick="completePms(this)">완료</button></td>
-                        </tr>
-                        <tr data-idx="8" data-person="박도현" data-status="warn">
-                            <td class="pms-idx">8</td>
-                            <td><span class="role-badge role-backend">백엔드</span></td>
-                            <td><span class="avatar-circle">박</span> 박도현</td>
-                            <td class="pms-phase">API 개발 2차</td>
-                            <td>2024-03-25</td>
-                            <td>2024-06-20</td>
-                            <td><span class="status-badge warn">검토중</span></td>
-                            <td class="pms-note">성능 최적화</td>
-                            <td class="pms-action"><button class="btn-done" onclick="completePms(this)">완료</button></td>
-                        </tr>
-                        <tr data-idx="9" data-person="최지아" data-status="active">
-                            <td class="pms-idx">9</td>
-                            <td><span class="role-badge role-publish">퍼블</span></td>
-                            <td><span class="avatar-circle">최</span> 최지아</td>
-                            <td class="pms-phase">마크업 2차</td>
-                            <td>2024-04-01</td>
-                            <td>2024-06-15</td>
-                            <td><span class="status-badge active">진행중</span></td>
-                            <td class="pms-note">크로스브라우저 테스트</td>
-                            <td class="pms-action"><button class="btn-done" onclick="completePms(this)">완료</button></td>
-                        </tr>
-                        <tr data-idx="10" data-person="정하은" data-status="active">
-                            <td class="pms-idx">10</td>
-                            <td><span class="role-badge role-frontend">프론트</span></td>
-                            <td><span class="avatar-circle">정</span> 정하은</td>
-                            <td class="pms-phase">개발 2차</td>
-                            <td>2024-04-15</td>
-                            <td>2024-06-28</td>
-                            <td><span class="status-badge active">진행중</span></td>
-                            <td class="pms-note">API 연동 및 기능 개발</td>
-                            <td class="pms-action"><button class="btn-done" onclick="completePms(this)">완료</button></td>
-                        </tr>
-                        <tr data-idx="11" data-person="미배정" data-status="pending">
-                            <td class="pms-idx">11</td>
-                            <td><span class="role-badge role-qa">QA</span></td>
-                            <td><span class="avatar-circle av-muted">-</span> 미배정</td>
-                            <td class="pms-phase">QA 1차</td>
-                            <td class="muted">-</td>
-                            <td class="muted">-</td>
-                            <td><span class="status-badge pending">대기</span></td>
-                            <td class="pms-note">기능 테스트 및 버그 리포트</td>
-                            <td class="pms-action"><button class="btn-done" onclick="completePms(this)">완료</button></td>
-                        </tr>
-                        <tr data-idx="12" data-person="미배정" data-status="pending">
-                            <td class="pms-idx">12</td>
-                            <td><span class="role-badge role-qa">QA</span></td>
-                            <td><span class="avatar-circle av-muted">-</span> 미배정</td>
-                            <td class="pms-phase">QA 2차</td>
-                            <td>2024-06-01</td>
-                            <td>2024-06-28</td>
-                            <td><span class="status-badge pending">대기</span></td>
-                            <td class="pms-note">회귀 테스트</td>
-                            <td class="pms-action"><button class="btn-done" onclick="completePms(this)">완료</button></td>
+                        <tr th:if="${#lists.isEmpty(schedules)}">
+                            <td colspan="10" class="meta" style="text-align:center; padding:20px 0;">
+                                등록된 PMS 일정이 없습니다.
+                            </td>
                         </tr>
                     </tbody>
                 </table>
@@ -226,47 +131,61 @@
         <div class="panel" style="margin-top:10px;">
             <div class="hd" style="display:flex; justify-content:space-between; align-items:center;">
                 <span>이슈 목록</span>
-                <button class="btn primary" style="font-size:11px; padding:4px 8px;">+ 이슈 추가</button>
+                <button class="btn primary" style="font-size:11px; padding:4px 8px;"
+                        onclick="openIssueModal()">+ 이슈 추가</button>
             </div>
             <div class="bd" style="padding:0;">
                 <table class="issue-table">
                     <thead>
                         <tr>
-                            <th>우선순위</th>
+                            <th style="width:80px;">우선순위</th>
                             <th>제목</th>
-                            <th>담당자</th>
-                            <th>상태</th>
-                            <th>마감일</th>
+                            <th style="width:120px;">담당자</th>
+                            <th style="width:120px;">마감일</th>
+                            <th style="width:92px;">상태 변경</th>
+                            <th style="width:100px;">현재 상태</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr>
-                            <td><span class="priority-badge urgent">긴급</span></td>
-                            <td>[P0] 로그인 세션 만료 오류</td>
-                            <td>박도현</td>
-                            <td><span class="status-badge active">진행중</span></td>
-                            <td>2024-04-05</td>
+                    <tbody id="issueTableBody">
+                        <th:block th:each="issue : ${issues}">
+                        <tr class="issue-main-row"
+                            th:attr="data-issue-id=${issue.id}"
+                            style="cursor:pointer;"
+                            onclick="toggleIssueRow(this)">
+                            <td><span th:class="|priority-badge ${issue.priorityClass}|"
+                                      th:text="${issue.priorityLabel}"></span></td>
+                            <td th:text="${issue.title}" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></td>
+                            <td th:text="${issue.assigneeName}" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></td>
+                            <td th:text="${issue.dueDateLabel}"></td>
+                            <td onclick="event.stopPropagation()">
+                                <select class="issue-status-select"
+                                        th:disabled="${issue.assigneeMemberId == null or issue.assigneeMemberId != currentMemberId}"
+                                        th:attr="data-issue-id=${issue.id}"
+                                        onchange="updateIssueStatus(this)">
+                                    <option value="TODO"        th:selected="${issue.statusRaw == 'TODO'}">대기</option>
+                                    <option value="IN_PROGRESS" th:selected="${issue.statusRaw == 'IN_PROGRESS'}">진행중</option>
+                                    <option value="DONE"        th:selected="${issue.statusRaw == 'DONE'}">완료</option>
+                                    <option value="HOLD"        th:selected="${issue.statusRaw == 'HOLD'}">보류</option>
+                                </select>
+                            </td>
+                            <td style="display:flex; align-items:center; justify-content:space-between;">
+                                <span th:class="|issue-status-badge ${issue.statusClass}|"
+                                      th:text="${issue.statusLabel}"></span>
+                                <span class="notice-chevron">▼</span>
+                            </td>
                         </tr>
-                        <tr>
-                            <td><span class="priority-badge high">높음</span></td>
-                            <td>[P1] 대시보드 로딩 속도 개선</td>
-                            <td>정하은</td>
-                            <td><span class="status-badge active">진행중</span></td>
-                            <td>2024-04-12</td>
+                        <tr class="issue-desc-row" style="display:none;">
+                            <td colspan="6">
+                                <div class="issue-item-body"
+                                     th:text="${issue.description != null and !#strings.isEmpty(issue.description)} ? ${issue.description} : '설명이 없습니다.'"></div>
+                            </td>
                         </tr>
-                        <tr>
-                            <td><span class="priority-badge medium">보통</span></td>
-                            <td>[P2] 모바일 반응형 레이아웃 깨짐</td>
-                            <td>최지아</td>
-                            <td><span class="status-badge warn">검토중</span></td>
-                            <td>2024-04-20</td>
-                        </tr>
-                        <tr>
-                            <td><span class="priority-badge low">낮음</span></td>
-                            <td>[P3] 다크모드 색상 토큰 정리</td>
-                            <td>이서연</td>
-                            <td><span class="status-badge pending">대기</span></td>
-                            <td>-</td>
+                        </th:block>
+                        <tr th:if="${#lists.isEmpty(issues)}">
+                            <td colspan="6" class="meta"
+                                style="text-align:center; padding:20px 0;">
+                                등록된 이슈가 없습니다.
+                            </td>
                         </tr>
                     </tbody>
                 </table>
@@ -277,48 +196,32 @@
     <!-- ===== 멤버 탭 ===== -->
     <div id="tab-members" class="tab-content" style="display:none;">
         <div class="panel" style="margin-top:10px;">
-            <div class="hd">프로젝트 멤버</div>
+            <div class="hd" style="display:flex; justify-content:space-between; align-items:center;">
+                <span>프로젝트 멤버</span>
+                <button class="btn primary" style="font-size:11px; padding:4px 10px;"
+                        onclick="openMemberAddModal()">+ 멤버 추가</button>
+            </div>
             <div class="bd">
                 <div class="member-list-grid">
-                    <div class="member-card">
-                        <span class="avatar-lg">김</span>
+                    <div class="member-card" th:each="pm : ${members}">
+                        <span class="avatar-lg" th:text="${#strings.substring(pm.member.name, 0, 1)}">-</span>
                         <div class="mc-info">
-                            <div class="mc-name">김민준</div>
-                            <div class="mc-role"><span class="role-badge role-pm">PM</span></div>
-                            <div class="meta">minjun@company.com</div>
+                            <div class="mc-name" th:text="${pm.member.name}">이름</div>
+                            <div class="mc-role">
+                                <span class="role-badge"
+                                      th:text="${pm.projectRole.name() == 'PM' ? 'PM' :
+                                               pm.projectRole.name() == 'BACKEND' ? '백엔드' :
+                                               pm.projectRole.name() == 'FRONTEND' ? '프론트' :
+                                               pm.projectRole.name() == 'DESIGN' ? '디자인' :
+                                               pm.projectRole.name() == 'QA' ? 'QA' :
+                                               pm.projectRole.name() == 'DEVOPS' ? 'DevOps' : '멤버'}">역할</span>
+                            </div>
+                            <div class="meta" th:text="${pm.member.email}">이메일</div>
                         </div>
                     </div>
-                    <div class="member-card">
-                        <span class="avatar-lg">이</span>
-                        <div class="mc-info">
-                            <div class="mc-name">이서연</div>
-                            <div class="mc-role"><span class="role-badge role-design">디자인</span></div>
-                            <div class="meta">seoyeon@company.com</div>
-                        </div>
-                    </div>
-                    <div class="member-card">
-                        <span class="avatar-lg">최</span>
-                        <div class="mc-info">
-                            <div class="mc-name">최지아</div>
-                            <div class="mc-role"><span class="role-badge role-publish">퍼블</span></div>
-                            <div class="meta">jia@company.com</div>
-                        </div>
-                    </div>
-                    <div class="member-card">
-                        <span class="avatar-lg">정</span>
-                        <div class="mc-info">
-                            <div class="mc-name">정하은</div>
-                            <div class="mc-role"><span class="role-badge role-frontend">프론트</span></div>
-                            <div class="meta">haeun@company.com</div>
-                        </div>
-                    </div>
-                    <div class="member-card">
-                        <span class="avatar-lg">박</span>
-                        <div class="mc-info">
-                            <div class="mc-name">박도현</div>
-                            <div class="mc-role"><span class="role-badge role-backend">백엔드</span></div>
-                            <div class="meta">dohyun@company.com</div>
-                        </div>
+                    <div th:if="${members == null or #lists.isEmpty(members)}"
+                         class="meta" style="padding:10px 0;">
+                        등록된 멤버가 없습니다.
                     </div>
                 </div>
             </div>
@@ -330,24 +233,32 @@
         <div class="panel" style="margin-top:10px;">
             <div class="hd" style="display:flex; justify-content:space-between; align-items:center;">
                 <span>공지사항</span>
-                <button class="btn primary" style="font-size:11px; padding:4px 8px;">+ 공지 작성</button>
+                <button class="btn primary" style="font-size:11px; padding:4px 8px;"
+                        onclick="openNoticeModal()">+ 공지 작성</button>
             </div>
-            <div class="bd" style="padding:0;">
-                <div class="notice-row">
-                    <div class="notice-row-title">4월 스프린트 목표 공유</div>
-                    <div class="notice-row-meta">김민준 · 2024-04-01</div>
-                </div>
-                <div class="notice-row">
-                    <div class="notice-row-title">디자인 시스템 컬러 토큰 업데이트 안내</div>
-                    <div class="notice-row-meta">이서연 · 2024-03-28</div>
-                </div>
-                <div class="notice-row">
-                    <div class="notice-row-title">QA 환경 배포 일정 변경 공지</div>
-                    <div class="notice-row-meta">김민준 · 2024-03-22</div>
-                </div>
-                <div class="notice-row">
-                    <div class="notice-row-title">API 문서 최신화 완료 알림</div>
-                    <div class="notice-row-meta">박도현 · 2024-03-15</div>
+            <div id="noticeList">
+                <div class="notice-board">
+                    <div class="notice-board-hd">
+                        <span style="flex:1;">제목</span>
+                        <span style="width:80px; text-align:center;">작성자</span>
+                        <span style="width:88px; text-align:center;">작성일</span>
+                        <span style="width:18px;"></span>
+                    </div>
+                    <div class="notice-item" th:each="n : ${notices}"
+                         th:attr="data-notice-id=${n.id}"
+                         onclick="toggleNotice(this)">
+                        <div class="notice-item-row">
+                            <span class="notice-item-title" th:text="${n.title}">제목</span>
+                            <span class="notice-item-author" th:text="${n.authorName}">작성자</span>
+                            <span class="notice-item-date" th:text="${n.createdAtLabel}">날짜</span>
+                            <span class="notice-chevron">▼</span>
+                        </div>
+                        <div class="notice-item-body" th:text="${n.content}">내용</div>
+                    </div>
+                    <div th:if="${notices == null or #lists.isEmpty(notices)}"
+                         class="meta" style="text-align:center; padding:24px 0;" id="noticeEmpty">
+                        등록된 공지사항이 없습니다.
+                    </div>
                 </div>
             </div>
         </div>
@@ -356,8 +267,98 @@
     <div th:replace="~{fragments/layout :: footer}"></div>
 </div>
 
+<!-- ===== 이슈 등록 모달 ===== -->
+<div id="issueModal" class="modal-overlay" style="display:none;">
+    <div class="modal-box" style="width:520px;">
+        <div class="modal-hd">
+            <span>이슈 등록</span>
+            <button class="modal-close" onclick="closeIssueModal()">✕</button>
+        </div>
+        <div class="modal-bd">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div class="field" style="grid-column:1/-1;">
+                    <label>제목 <span style="color:var(--warn)">*</span></label>
+                    <input type="text" id="issueTitle" placeholder="이슈 제목" autocomplete="off"/>
+                </div>
+                <div class="field" style="grid-column:1/-1;">
+                    <label>설명</label>
+                    <textarea id="issueDesc" rows="3" placeholder="상세 내용 (선택)"
+                              style="width:100%; padding:9px 10px; border:1px solid #8fb3ff;
+                                     border-radius:3px; font-size:13px; outline:none; resize:vertical;"></textarea>
+                </div>
+                <div class="field">
+                    <label>우선순위 <span style="color:var(--warn)">*</span></label>
+                    <select id="issuePriority" style="width:100%; padding:9px 10px; border:1px solid #8fb3ff;
+                            border-radius:3px; background:#fff; font-size:13px; outline:none;">
+                        <option value="">선택하세요</option>
+                        <option value="URGENT">긴급</option>
+                        <option value="HIGH">높음</option>
+                        <option value="MEDIUM">보통</option>
+                        <option value="LOW">낮음</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>마감일</label>
+                    <input type="date" id="issueDueDate" style="width:100%; padding:9px 10px;
+                           border:1px solid #8fb3ff; border-radius:3px; background:#fff;
+                           font-size:13px; outline:none;"/>
+                </div>
+                <div class="field" style="grid-column:1/-1;">
+                    <label>담당자 <span style="color:var(--warn)">*</span></label>
+                    <div style="position:relative;">
+                        <input type="text" id="issueAssigneeName" placeholder="이름 검색" autocomplete="off"
+                               oninput="searchIssueAssignee(this.value)"
+                               onfocus="searchIssueAssignee(this.value)"/>
+                        <div id="issueAssigneeDropdown" class="member-dropdown" style="display:none;"></div>
+                    </div>
+                    <input type="hidden" id="issueAssigneeId"/>
+                </div>
+            </div>
+            <input type="hidden" id="issueScheduleId"/>
+        </div>
+        <div class="modal-ft">
+            <button class="btn" onclick="closeIssueModal()">취소</button>
+            <button class="btn primary" onclick="submitIssue()">등록</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== 멤버 추가 모달 ===== -->
+<div id="memberAddModal" class="modal-overlay" style="display:none;">
+    <div class="modal-box" style="width:460px;">
+        <div class="modal-hd">
+            <span>멤버 추가</span>
+            <button class="modal-close" onclick="closeMemberAddModal()">✕</button>
+        </div>
+        <div class="modal-bd">
+            <div class="field">
+                <label>역할 <span style="color:var(--warn)">*</span></label>
+                <select id="inviteRole" style="width:100%; padding:9px 10px; border:1px solid #8fb3ff;
+                        border-radius:3px; background:#fff; font-size:13px; outline:none;">
+                    <option value="">선택하세요</option>
+                    <option value="PM">PM</option>
+                    <option value="BACKEND">백엔드</option>
+                    <option value="FRONTEND">프론트엔드</option>
+                    <option value="DESIGN">디자인</option>
+                    <option value="QA">QA</option>
+                    <option value="DEVOPS">DevOps</option>
+                    <option value="MEMBER">멤버</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>멤버 검색</label>
+                <div th:replace="~{fragments/member-invite :: inviteField}"></div>
+            </div>
+        </div>
+        <div class="modal-ft">
+            <button class="btn" onclick="closeMemberAddModal()">취소</button>
+            <button class="btn primary" onclick="submitMemberAdd()">추가</button>
+        </div>
+    </div>
+</div>
+
 <!-- ===== PMS 등록 모달 ===== -->
-<div id="pmsModal" class="modal-overlay" style="display:none;" onclick="closePmsModalOutside(event)">
+<div id="pmsModal" class="modal-overlay" style="display:none;">
     <div class="modal-box" style="width:520px;">
         <div class="modal-hd">
             <span>PMS 일정 등록</span>
@@ -371,29 +372,38 @@
                             border-radius:3px; background:#fff; font-size:13px; outline:none;">
                         <option value="">선택하세요</option>
                         <option value="PM">PM</option>
-                        <option value="디자인">디자인</option>
-                        <option value="퍼블">퍼블</option>
-                        <option value="프론트">프론트</option>
-                        <option value="백엔드">백엔드</option>
+                        <option value="DESIGN">디자인</option>
+                        <option value="PUBLISHER">퍼블</option>
+                        <option value="DEVELOPER">개발</option>
+                        <option value="PLANNER">기획</option>
                         <option value="QA">QA</option>
-                        <option value="기타">기타</option>
                     </select>
                 </div>
                 <div class="field">
-                    <label>담당자 <span style="color:var(--warn)">*</span></label>
-                    <input type="text" id="pmsPerson" placeholder="예: 김민준" autocomplete="off"/>
+                    <label>담당자</label>
+                    <div style="position:relative;">
+                        <input type="text" id="pmsPerson" placeholder="이름 검색" autocomplete="off"
+                               oninput="searchPmsAssignee(this.value)"
+                               onfocus="searchPmsAssignee(this.value)"/>
+                        <div id="pmsAssigneeDropdown" class="member-dropdown" style="display:none;"></div>
+                    </div>
+                    <input type="hidden" id="pmsAssigneeId"/>
                 </div>
                 <div class="field" style="grid-column:1/-1;">
                     <label>차수명 <span style="color:var(--warn)">*</span></label>
-                    <input type="text" id="pmsPhase" placeholder="예: 기획 1차, 디자인 2차, QA 최종" autocomplete="off"/>
+                    <input type="text" id="pmsPhase" placeholder="예: 1차, 2차, 기획 1차" autocomplete="off"/>
+                </div>
+                <div class="field" style="grid-column:1/-1;">
+                    <label>업무명 <span style="color:var(--warn)">*</span></label>
+                    <input type="text" id="pmsTitle" placeholder="예: 로그인 UI 디자인, API 연동 테스트" autocomplete="off"/>
                 </div>
                 <div class="field">
-                    <label>시작일</label>
+                    <label>시작일 <span style="color:var(--warn)">*</span></label>
                     <input type="date" id="pmsStart" style="width:100%; padding:9px 10px; border:1px solid #8fb3ff;
                            border-radius:3px; background:#fff; font-size:13px; outline:none;"/>
                 </div>
                 <div class="field">
-                    <label>종료일</label>
+                    <label>종료일 <span style="color:var(--warn)">*</span></label>
                     <input type="date" id="pmsEnd" style="width:100%; padding:9px 10px; border:1px solid #8fb3ff;
                            border-radius:3px; background:#fff; font-size:13px; outline:none;"/>
                 </div>
@@ -401,10 +411,10 @@
                     <label>상태</label>
                     <select id="pmsStatus" style="width:100%; padding:9px 10px; border:1px solid #8fb3ff;
                             border-radius:3px; background:#fff; font-size:13px; outline:none;">
-                        <option value="pending">대기</option>
-                        <option value="active">진행중</option>
-                        <option value="warn">검토중</option>
-                        <option value="done">완료</option>
+                        <option value="PLANNED">대기</option>
+                        <option value="IN_PROGRESS">진행중</option>
+                        <option value="DELAYED">검토중</option>
+                        <option value="DONE">완료</option>
                     </select>
                 </div>
                 <div class="field">
@@ -437,8 +447,44 @@
     </div>
 </div>
 
+<!-- ===== 공지 작성 모달 ===== -->
+<div id="noticeModal" class="modal-overlay" style="display:none;">
+    <div class="modal-box" style="width:520px;">
+        <div class="modal-hd">
+            <span>공지 작성</span>
+            <button class="modal-close" onclick="closeNoticeModal()">✕</button>
+        </div>
+        <div class="modal-bd">
+            <div class="field">
+                <label>제목 <span style="color:var(--warn)">*</span></label>
+                <input type="text" id="noticeTitle" placeholder="공지 제목" autocomplete="off"/>
+            </div>
+            <div class="field" style="margin-top:10px;">
+                <label>내용 <span style="color:var(--warn)">*</span></label>
+                <textarea id="noticeContent" rows="5" placeholder="공지 내용"
+                          style="width:100%; padding:9px 10px; border:1px solid #8fb3ff;
+                                 border-radius:3px; font-size:13px; outline:none; resize:vertical;"></textarea>
+            </div>
+        </div>
+        <div class="modal-ft">
+            <button class="btn" onclick="closeNoticeModal()">취소</button>
+            <button class="btn primary" onclick="submitNotice()">등록</button>
+        </div>
+    </div>
+</div>
+
 <!-- ===== 토스트 ===== -->
 <div id="pmsToast" class="pms-toast" style="display:none;"></div>
+
+<script th:inline="javascript">
+    /* ── 프로젝트 멤버 목록 (담당자 검색용) ── */
+    const PROJECT_MEMBERS = [];
+    /*[# th:each="pm : ${members}"]*/
+    PROJECT_MEMBERS.push({ id: [[${pm.id}]], memberId: [[${pm.member.id}]], name: [[${pm.member.name}]], email: [[${pm.member.email}]] });
+    /*[/]*/
+    /* ── 현재 로그인 멤버 ID ── */
+    const CURRENT_MEMBER_ID = [[${currentMemberId}]];
+</script>
 
 <script>
     /* ── 탭 전환 ── */
@@ -455,107 +501,507 @@
         document.getElementById('pmsRole').focus();
     }
     function closePmsModal() {
+        clearPmsForm();
         document.getElementById('pmsModal').style.display = 'none';
     }
-    function closePmsModalOutside(e) {
-        if (e.target.id === 'pmsModal') closePmsModal();
-    }
 
-    const roleClassMap = {
-        'PM':'role-pm', '디자인':'role-design', '퍼블':'role-publish',
-        '프론트':'role-frontend', '백엔드':'role-backend', 'QA':'role-qa', '기타':'role-qa'
-    };
-    const statusLabelMap = {
-        'pending':'대기', 'active':'진행중', 'warn':'검토중', 'done':'완료'
-    };
+    // 프로젝트 ID (Thymeleaf → JS)
+    const PROJECT_ID = Number(document.getElementById('pageWrap').dataset.projectId);
+    if (!PROJECT_ID) console.error('[PMS] PROJECT_ID를 읽을 수 없습니다. data-project-id 렌더링을 확인하세요.');
+
+    /* ── 담당자 검색 ── */
+    function searchPmsAssignee(val) {
+        const dd = document.getElementById('pmsAssigneeDropdown');
+        document.getElementById('pmsAssigneeId').value = '';
+        const keyword = val.trim().toLowerCase();
+        const filtered = keyword
+            ? PROJECT_MEMBERS.filter(m => m.name.toLowerCase().includes(keyword))
+            : PROJECT_MEMBERS;
+        if (filtered.length === 0) {
+            dd.innerHTML = '<div class="member-option muted" style="cursor:default;">검색 결과가 없습니다.</div>';
+        } else {
+            dd.innerHTML = filtered.map(m =>
+                `<div class="member-option" onclick="selectPmsAssignee(${m.id}, '${m.name}')">${m.name} <span class="muted">${m.email}</span></div>`
+            ).join('');
+        }
+        dd.style.display = 'block';
+    }
+    function selectPmsAssignee(id, name) {
+        document.getElementById('pmsPerson').value = name;
+        document.getElementById('pmsAssigneeId').value = id;
+        document.getElementById('pmsAssigneeDropdown').style.display = 'none';
+    }
+    document.addEventListener('click', e => {
+        if (!e.target.closest('#pmsPerson') && !e.target.closest('#pmsAssigneeDropdown')) {
+            document.getElementById('pmsAssigneeDropdown').style.display = 'none';
+        }
+    });
 
     function submitPms() {
-        const role    = document.getElementById('pmsRole').value;
-        const person  = document.getElementById('pmsPerson').value.trim();
-        const phase   = document.getElementById('pmsPhase').value.trim();
-        const start   = document.getElementById('pmsStart').value;
-        const end     = document.getElementById('pmsEnd').value;
-        const status  = document.getElementById('pmsStatus').value;
-        const memo    = document.getElementById('pmsMemo').value.trim();
+        const role            = document.getElementById('pmsRole').value;
+        const phaseName       = document.getElementById('pmsPhase').value.trim();
+        const title           = document.getElementById('pmsTitle').value.trim();
+        const start           = document.getElementById('pmsStart').value || null;
+        const end             = document.getElementById('pmsEnd').value || null;
+        const status          = document.getElementById('pmsStatus').value;
+        const memo            = document.getElementById('pmsMemo').value.trim() || null;
+        const projectMemberId = document.getElementById('pmsAssigneeId').value
+                                ? Number(document.getElementById('pmsAssigneeId').value) : null;
 
-        if (!role)   { alert('역할을 선택하세요.'); return; }
-        if (!person) { alert('담당자를 입력하세요.'); return; }
-        if (!phase)  { alert('차수명을 입력하세요.'); return; }
+        if (!PROJECT_ID) { alert('프로젝트 ID를 확인할 수 없습니다. 페이지를 새로고침해주세요.'); return; }
+        if (!role)      { alert('역할을 선택하세요.'); return; }
+        if (!phaseName) { alert('차수명을 입력하세요.'); return; }
+        if (!title)     { alert('업무명을 입력하세요.'); return; }
+        if (!start)     { alert('시작일을 입력하세요.'); return; }
+        if (!end)       { alert('종료일을 입력하세요.'); return; }
+        if (end < start){ alert('종료일은 시작일 이후여야 합니다.'); return; }
 
-        const tbody = document.getElementById('pmsTableBody');
-        const rows  = tbody.querySelectorAll('tr');
-        const newIdx = rows.length + 1;
-        const initial = person.charAt(0);
-        const isDone  = status === 'done';
-
-        const tr = document.createElement('tr');
-        tr.dataset.idx    = newIdx;
-        tr.dataset.person = person;
-        tr.dataset.status = status;
-        tr.innerHTML = `
-            <td class="pms-idx">${newIdx}</td>
-            <td><span class="role-badge ${roleClassMap[role] || 'role-qa'}">${role}</span></td>
-            <td><span class="avatar-circle">${initial}</span> ${person}</td>
-            <td class="pms-phase">${phase}</td>
-            <td>${start || '<span class="muted">-</span>'}</td>
-            <td>${end   || '<span class="muted">-</span>'}</td>
-            <td><span class="status-badge ${status}">${statusLabelMap[status]}</span></td>
-            <td class="pms-note">${memo || '-'}</td>
-            <td class="pms-action">
-                ${isDone
-                    ? '<button class="btn-done done-disabled" disabled>완료됨</button>'
-                    : '<button class="btn-done" onclick="completePms(this)">완료</button>'
-                }
-            </td>`;
-        tbody.appendChild(tr);
-
-        closePmsModal();
-        clearPmsForm();
-        showToast(`"${phase}" 일정이 등록되었습니다.`);
+        fetch('/api/pms/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                projectId: PROJECT_ID,
+                phaseName,
+                projectMemberId,
+                role,
+                title,
+                startDate: start,
+                endDate: end,
+                status,
+                memo: memo
+            })
+        })
+        .then(r => {
+            if (!r.ok) return r.json().then(e => { throw new Error(e.message || '등록에 실패했습니다.'); });
+            closePmsModal();
+            clearPmsForm();
+            window.location.reload();
+        })
+        .catch(e => alert(e.message));
     }
 
     function clearPmsForm() {
-        ['pmsRole','pmsStatus'].forEach(id => document.getElementById(id).selectedIndex = 0);
-        ['pmsPerson','pmsPhase','pmsStart','pmsEnd','pmsMemo'].forEach(id => document.getElementById(id).value = '');
+        ['pmsRole', 'pmsStatus'].forEach(id => document.getElementById(id).selectedIndex = 0);
+        ['pmsPhase', 'pmsTitle', 'pmsStart', 'pmsEnd', 'pmsMemo', 'pmsPerson', 'pmsAssigneeId'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('pmsAssigneeDropdown').style.display = 'none';
     }
 
     /* ── 완료 처리 ── */
-    function completePms(btn) {
-        const row     = btn.closest('tr');
-        const person  = row.dataset.person;
-        const phase   = row.querySelector('.pms-phase').textContent;
-        const tbody   = document.getElementById('pmsTableBody');
-        const allRows = Array.from(tbody.querySelectorAll('tr'));
-        const idx     = allRows.indexOf(row);
+    function completePms(btn, scheduleId) {
+        fetch(`/api/schedules/${scheduleId}/complete`, { method: 'PATCH' })
+            .then(r => {
+                if (!r.ok) throw new Error('완료 처리에 실패했습니다.');
 
-        // 현재 행 상태 → 완료
-        row.dataset.status = 'done';
-        row.querySelector('.status-badge').className = 'status-badge done';
-        row.querySelector('.status-badge').textContent = '완료';
-        btn.textContent = '완료됨';
-        btn.classList.add('done-disabled');
-        btn.disabled = true;
+                const row    = btn.closest('tr');
+                const person = row.dataset.person;
+                const phase  = row.querySelector('.pms-phase').textContent;
+                const tbody  = document.getElementById('pmsTableBody');
+                const allRows = Array.from(tbody.querySelectorAll('tr'));
+                const idx    = allRows.indexOf(row);
 
-        // 다음 미완료 행 찾기
-        const nextRow = allRows.slice(idx + 1).find(r => r.dataset.status !== 'done');
-        const nextPerson = nextRow ? nextRow.dataset.person : null;
-        const nextPhase  = nextRow ? nextRow.querySelector('.pms-phase').textContent : null;
+                // 현재 행 상태 → 완료
+                row.dataset.status = 'done';
+                row.querySelector('.status-badge').className = 'status-badge done';
+                row.querySelector('.status-badge').textContent = '완료';
+                btn.textContent = '완료됨';
+                btn.classList.add('done-disabled');
+                btn.disabled = true;
 
-        // 알림 모달 표시
-        const msg = nextRow
-            ? `<b>${person}</b>님의 <b>"${phase}"</b> 작업이 완료되었습니다.<br><br>
-               다음 담당자 <b>${nextPerson}</b>님에게 알림을 전송했습니다.<br>
-               <span style="font-size:12px; color:var(--muted);">메시지: "내 작업이 완료되었습니다. 확인 후 <b>${nextPhase}</b>를 시작해 주세요."</span>`
-            : `<b>${person}</b>님의 <b>"${phase}"</b> 작업이 완료되었습니다.<br><br>
-               <span style="font-size:12px; color:var(--muted);">모든 후속 일정이 없습니다. 프로젝트 일정을 확인해 주세요.</span>`;
+                // 다음 미완료 행 찾기
+                const nextRow    = allRows.slice(idx + 1).find(r => r.dataset.status !== 'done');
+                const nextPerson = nextRow ? nextRow.dataset.person : null;
+                const nextPhase  = nextRow ? nextRow.querySelector('.pms-phase').textContent : null;
 
-        document.getElementById('pmsNotifyMsg').innerHTML = msg;
-        document.getElementById('pmsNotifyModal').style.display = 'flex';
+                const msg = nextRow
+                    ? `<b>${person}</b>님의 <b>"${phase}"</b> 작업이 완료되었습니다.<br><br>
+                       다음 담당자 <b>${nextPerson}</b>님에게 알림을 전송했습니다.<br>
+                       <span style="font-size:12px; color:var(--muted);">메시지: "내 작업이 완료되었습니다. 확인 후 <b>${nextPhase}</b>를 시작해 주세요."</span>`
+                    : `<b>${person}</b>님의 <b>"${phase}"</b> 작업이 완료되었습니다.<br><br>
+                       <span style="font-size:12px; color:var(--muted);">모든 후속 일정이 없습니다. 프로젝트 일정을 확인해 주세요.</span>`;
+
+                document.getElementById('pmsNotifyMsg').innerHTML = msg;
+                document.getElementById('pmsNotifyModal').style.display = 'flex';
+            })
+            .catch(e => alert(e.message));
     }
 
     function closePmsNotify() {
         document.getElementById('pmsNotifyModal').style.display = 'none';
+        window.location.reload();
     }
+
+    /* ── 이슈 등록 모달 ── */
+    const PRIORITY_LABEL = { URGENT: '긴급', HIGH: '높음', MEDIUM: '보통', LOW: '낮음' };
+    const PRIORITY_CLASS = { URGENT: 'urgent', HIGH: 'high', MEDIUM: 'medium', LOW: 'low' };
+    const ISSUE_STATUS_LABEL = { TODO: '대기', IN_PROGRESS: '진행중', DONE: '완료', HOLD: '보류' };
+    const ISSUE_STATUS_BADGE = { TODO: 'isb-todo', IN_PROGRESS: 'isb-inprogress', DONE: 'isb-done', HOLD: 'isb-hold' };
+
+    function _clearIssueForm() {
+        ['issueTitle', 'issueDesc', 'issueDueDate', 'issueAssigneeName', 'issueAssigneeId', 'issueScheduleId']
+            .forEach(id => document.getElementById(id).value = '');
+        document.getElementById('issuePriority').selectedIndex = 0;
+        document.getElementById('issueAssigneeDropdown').style.display = 'none';
+    }
+    function openIssueModal() {
+        _clearIssueForm();
+        document.getElementById('issueModal').style.display = 'flex';
+        document.getElementById('issueTitle').focus();
+    }
+    /* PMS 행의 ⚠️ 아이콘 클릭 시 — 담당자 자동 세팅 */
+    function openPmsIssueModal(scheduleId) {
+        _clearIssueForm();
+        const row = document.querySelector(`tr[data-schedule-id="${scheduleId}"]`);
+        if (row) {
+            const assigneeName = row.dataset.person;
+            const assigneeMemberId = row.dataset.assigneeMemberId;
+            if (assigneeName && assigneeName !== '미배정') {
+                document.getElementById('issueAssigneeName').value = assigneeName;
+                document.getElementById('issueAssigneeId').value = assigneeMemberId || '';
+            }
+        }
+        document.getElementById('issueScheduleId').value = scheduleId;
+        document.getElementById('issueModal').style.display = 'flex';
+        document.getElementById('issueTitle').focus();
+    }
+    function closeIssueModal() {
+        _clearIssueForm();
+        document.getElementById('issueModal').style.display = 'none';
+    }
+    function searchIssueAssignee(val) {
+        const dd = document.getElementById('issueAssigneeDropdown');
+        document.getElementById('issueAssigneeId').value = '';
+        const keyword = val.trim().toLowerCase();
+        const filtered = keyword
+            ? PROJECT_MEMBERS.filter(m => m.name.toLowerCase().includes(keyword))
+            : PROJECT_MEMBERS;
+        dd.innerHTML = filtered.length === 0
+            ? '<div class="member-option muted" style="cursor:default;">검색 결과가 없습니다.</div>'
+            : filtered.map(m =>
+                `<div class="member-option" onclick="selectIssueAssignee(${m.memberId}, '${m.name}')">${m.name} <span class="muted">${m.email}</span></div>`
+              ).join('');
+        dd.style.display = 'block';
+    }
+    function selectIssueAssignee(id, name) {
+        document.getElementById('issueAssigneeName').value = name;
+        document.getElementById('issueAssigneeId').value = id;
+        document.getElementById('issueAssigneeDropdown').style.display = 'none';
+    }
+    document.addEventListener('click', e => {
+        if (!e.target.closest('#issueAssigneeName') && !e.target.closest('#issueAssigneeDropdown')) {
+            const dd = document.getElementById('issueAssigneeDropdown');
+            if (dd) dd.style.display = 'none';
+        }
+    });
+    function submitIssue() {
+        const title      = document.getElementById('issueTitle').value.trim();
+        const desc       = document.getElementById('issueDesc').value.trim() || null;
+        const priority   = document.getElementById('issuePriority').value;
+        const dueDate    = document.getElementById('issueDueDate').value || null;
+        const assigneeId = document.getElementById('issueAssigneeId').value
+                           ? Number(document.getElementById('issueAssigneeId').value) : null;
+        const scheduleId = document.getElementById('issueScheduleId').value
+                           ? Number(document.getElementById('issueScheduleId').value) : null;
+        if (!title)      { alert('제목을 입력하세요.'); return; }
+        if (!priority)   { alert('우선순위를 선택하세요.'); return; }
+        if (!assigneeId) { alert('담당자를 선택하세요.'); return; }
+        fetch('/api/issues', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ projectId: PROJECT_ID, title, description: desc, priority, assigneeId, dueDate, scheduleId })
+        })
+        .then(r => {
+            if (!r.ok) return r.json().then(e => { throw new Error(e.message || '등록에 실패했습니다.'); });
+            return r.json();
+        })
+        .then(issue => {
+            closeIssueModal();
+            // PMS 행 이슈 카운트 업데이트
+            if (scheduleId) {
+                const pmsRow = document.querySelector(`tr[data-schedule-id="${scheduleId}"]`);
+                if (pmsRow) {
+                    const btn = pmsRow.querySelector('.btn-issue-count');
+                    if (btn) {
+                        const cur = parseInt(btn.textContent.replace(/\D/g, '') || '0');
+                        btn.textContent = `⚠️ ${cur + 1}`;
+                    }
+                }
+            }
+            // 이슈 탭 테이블에 행 추가
+            const tbody = document.getElementById('issueTableBody');
+            const emptyRow = tbody.querySelector('td[colspan]')?.closest('tr');
+            if (emptyRow) emptyRow.remove();
+            const isMyIssue = issue.assigneeMemberId && issue.assigneeMemberId === CURRENT_MEMBER_ID;
+            const statusOptions = [
+                {v:'TODO',label:'대기'},{v:'IN_PROGRESS',label:'진행중'},{v:'DONE',label:'완료'},{v:'HOLD',label:'보류'}
+            ];
+            const optHtml = statusOptions.map(o =>
+                `<option value="${o.v}"${o.v === issue.status ? ' selected' : ''}>${o.label}</option>`
+            ).join('');
+            const badgeClass = ISSUE_STATUS_BADGE[issue.status] || 'isb-todo';
+            const badgeLabel = ISSUE_STATUS_LABEL[issue.status] || issue.status;
+            const tr = document.createElement('tr');
+            tr.className = 'issue-main-row';
+            tr.style.cursor = 'pointer';
+            tr.dataset.issueId = issue.id;
+            tr.setAttribute('onclick', 'toggleIssueRow(this)');
+            tr.innerHTML = `
+                <td><span class="priority-badge ${PRIORITY_CLASS[issue.priority]}">${PRIORITY_LABEL[issue.priority]}</span></td>
+                <td>${issue.title}</td>
+                <td>${issue.assigneeName || '-'}</td>
+                <td>${issue.dueDateLabel || '-'}</td>
+                <td onclick="event.stopPropagation()"><select class="issue-status-select" data-issue-id="${issue.id}"
+                            ${isMyIssue ? '' : 'disabled'}
+                            onchange="updateIssueStatus(this)">${optHtml}</select></td>
+                <td><span class="issue-status-badge ${badgeClass}">${badgeLabel}</span>
+                    <span class="notice-chevron" style="float:right; margin-right:4px;">▼</span></td>`;
+            const descTr = document.createElement('tr');
+            descTr.className = 'issue-desc-row';
+            descTr.style.display = 'none';
+            const descText = issue.description || '';
+            descTr.innerHTML = `<td colspan="6" style="padding:10px 16px; background:#f7f9ff; color:#444; font-size:13px; border-bottom:1px solid #e7ecf8;">${descText || '<span style="color:#aaa;">설명이 없습니다.</span>'}</td>`;
+            tbody.appendChild(tr);
+            tbody.appendChild(descTr);
+        })
+        .catch(e => alert(e.message));
+    }
+
+    /* ── 이슈 상태 변경 ── */
+    function updateIssueStatus(select) {
+        const issueId = select.dataset.issueId;
+        const status  = select.value;
+        const prev    = select.dataset.prev;
+        select.dataset.prev = status;
+        fetch(`/api/issues/${issueId}/status`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status })
+        })
+        .then(r => {
+            if (!r.ok) return r.json().then(e => { throw new Error(e.message || '상태 변경에 실패했습니다.'); });
+            // 성공 시 현재 상태 뱃지 업데이트
+            const badge = select.closest('tr').querySelector('.issue-status-badge');
+            if (badge) {
+                badge.className = `issue-status-badge ${ISSUE_STATUS_BADGE[status] || ''}`;
+                badge.textContent = ISSUE_STATUS_LABEL[status] || status;
+            }
+        })
+        .catch(e => {
+            alert(e.message);
+            if (prev) select.value = prev;
+            select.dataset.prev = prev;
+        });
+    }
+
+    /* ── 멤버 추가 모달 ── */
+    const EXISTING_MEMBER_IDS = new Set(PROJECT_MEMBERS.map(m => m.memberId));
+    const inviteSelectedList = [];
+
+    function openMemberAddModal() {
+        inviteSelectedList.length = 0;
+        inviteRenderChips();
+        document.getElementById('inviteSearchInput').value = '';
+        document.getElementById('inviteDropdown').style.display = 'none';
+        document.getElementById('inviteRole').selectedIndex = 0;
+        document.getElementById('memberAddModal').style.display = 'flex';
+    }
+    function closeMemberAddModal() {
+        inviteSelectedList.length = 0;
+        inviteRenderChips();
+        document.getElementById('inviteSearchInput').value = '';
+        document.getElementById('inviteDropdown').style.display = 'none';
+        document.getElementById('inviteRole').selectedIndex = 0;
+        document.getElementById('memberAddModal').style.display = 'none';
+    }
+
+    let inviteSearchTimer = null;
+    function inviteSearchMembers(val) {
+        clearTimeout(inviteSearchTimer);
+        const dd = document.getElementById('inviteDropdown');
+        if (!val.trim()) { dd.style.display = 'none'; return; }
+        inviteSearchTimer = setTimeout(() => {
+            fetch(`/api/members/search?q=${encodeURIComponent(val)}`)
+                .then(r => r.json())
+                .then(members => {
+                    const filtered = members.filter(m =>
+                        !EXISTING_MEMBER_IDS.has(m.id) &&
+                        !inviteSelectedList.find(s => s.id === m.id)
+                    );
+                    dd.innerHTML = filtered.length === 0
+                        ? '<div class="member-option muted" style="cursor:default;">검색 결과가 없습니다.</div>'
+                        : filtered.map(m =>
+                            `<div class="member-option" onclick="inviteAddMember(${m.id}, '${m.name}', '${m.email}')">${m.name} <span class="muted">${m.email}</span></div>`
+                        ).join('');
+                    dd.style.display = 'block';
+                });
+        }, 200);
+    }
+    function inviteAddMember(id, name, email) {
+        if (inviteSelectedList.find(m => m.id === id)) return;
+        inviteSelectedList.push({ id, name, email });
+        inviteRenderChips();
+        document.getElementById('inviteSearchInput').value = '';
+        document.getElementById('inviteDropdown').style.display = 'none';
+    }
+    function inviteRemoveMember(id) {
+        const idx = inviteSelectedList.findIndex(m => m.id === id);
+        if (idx > -1) inviteSelectedList.splice(idx, 1);
+        inviteRenderChips();
+    }
+    function inviteRenderChips() {
+        document.getElementById('inviteChips').innerHTML = inviteSelectedList.map(m =>
+            `<span class="member-tag">${m.name} <button onclick="inviteRemoveMember(${m.id})" class="tag-remove">✕</button></span>`
+        ).join('');
+    }
+    document.addEventListener('click', e => {
+        if (!e.target.closest('#inviteSearchInput') && !e.target.closest('#inviteDropdown')) {
+            const dd = document.getElementById('inviteDropdown');
+            if (dd) dd.style.display = 'none';
+        }
+    });
+    const ROLE_LABELS = {
+        PM: 'PM', BACKEND: '백엔드', FRONTEND: '프론트', DESIGN: '디자인',
+        QA: 'QA', DEVOPS: 'DevOps', MEMBER: '멤버'
+    };
+    function submitMemberAdd() {
+        const role = document.getElementById('inviteRole').value;
+        if (!role) { alert('역할을 선택하세요.'); return; }
+        if (inviteSelectedList.length === 0) { alert('초대할 멤버를 선택하세요.'); return; }
+        Promise.all(inviteSelectedList.map(m =>
+            fetch('/api/project-members', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ projectId: PROJECT_ID, memberId: m.id, projectRole: role })
+            }).then(r => {
+                if (!r.ok) return r.json().then(e => { throw new Error(e.message || `${m.name} 초대 실패`); });
+                return r.json();
+            })
+        ))
+        .then(results => {
+            const grid = document.querySelector('.member-list-grid');
+            const emptyMsg = grid.querySelector('div.meta');
+            if (emptyMsg) emptyMsg.remove();
+            results.forEach(pm => {
+                EXISTING_MEMBER_IDS.add(pm.memberId);
+                const card = document.createElement('div');
+                card.className = 'member-card';
+                card.innerHTML = `
+                    <span class="avatar-lg">${pm.memberName.charAt(0)}</span>
+                    <div class="mc-info">
+                        <div class="mc-name">${pm.memberName}</div>
+                        <div class="mc-role"><span class="role-badge">${ROLE_LABELS[pm.projectRole] || pm.projectRole}</span></div>
+                        <div class="meta">${pm.memberEmail}</div>
+                    </div>`;
+                grid.appendChild(card);
+            });
+            const countEl = document.getElementById('memberCountLabel');
+            if (countEl) countEl.textContent = Number(countEl.textContent) + results.length;
+            closeMemberAddModal();
+        })
+        .catch(e => alert(e.message));
+    }
+
+    /* ── 공지 모달 ── */
+    function openNoticeModal() {
+        document.getElementById('noticeModal').style.display = 'flex';
+        document.getElementById('noticeTitle').focus();
+    }
+    function closeNoticeModal() {
+        document.getElementById('noticeTitle').value = '';
+        document.getElementById('noticeContent').value = '';
+        document.getElementById('noticeModal').style.display = 'none';
+    }
+    document.addEventListener('keydown', function(e) {
+        if (e.key !== 'Escape') return;
+        if (document.getElementById('pmsModal').style.display       !== 'none') { closePmsModal();       return; }
+        if (document.getElementById('issueModal').style.display     !== 'none') { closeIssueModal();     return; }
+        if (document.getElementById('memberAddModal').style.display !== 'none') { closeMemberAddModal(); return; }
+        if (document.getElementById('noticeModal').style.display    !== 'none') { closeNoticeModal();    return; }
+    });
+    function submitNotice() {
+        const title   = document.getElementById('noticeTitle').value.trim();
+        const content = document.getElementById('noticeContent').value.trim();
+        if (!title)   { alert('제목을 입력하세요.'); return; }
+        if (!content) { alert('내용을 입력하세요.'); return; }
+        fetch('/api/notices', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ projectId: PROJECT_ID, title, content })
+        })
+        .then(r => {
+            if (!r.ok) return r.json().then(e => { throw new Error(e.message || '등록에 실패했습니다.'); });
+            return r.json();
+        })
+        .then(notice => {
+            closeNoticeModal();
+            const board = document.querySelector('.notice-board');
+            const emptyMsg = board.querySelector('#noticeEmpty');
+            if (emptyMsg) emptyMsg.remove();
+            const item = document.createElement('div');
+            item.className = 'notice-item';
+            item.setAttribute('data-notice-id', notice.id);
+            item.onclick = function() { toggleNotice(this); };
+            item.innerHTML = `
+                <div class="notice-item-row">
+                    <span class="notice-item-title">${notice.title}</span>
+                    <span class="notice-item-author">${notice.authorName}</span>
+                    <span class="notice-item-date">${notice.createdAtLabel}</span>
+                    <span class="notice-chevron">▼</span>
+                </div>
+                <div class="notice-item-body">${notice.content}</div>`;
+            // 헤더 바로 다음에 삽입 (최신순)
+            const header = board.querySelector('.notice-board-hd');
+            header.insertAdjacentElement('afterend', item);
+        })
+        .catch(e => alert(e.message));
+    }
+    function toggleNotice(item) {
+        const body    = item.querySelector('.notice-item-body');
+        const chevron = item.querySelector('.notice-chevron');
+        const isOpen  = item.classList.contains('open');
+        if (isOpen) {
+            item.classList.remove('open');
+            body.style.display = 'none';
+        } else {
+            item.classList.add('open');
+            body.style.display = 'block';
+        }
+    }
+
+    /* ── 이슈 행 설명 토글 ── */
+    function toggleIssueRow(row) {
+        const descRow = row.nextElementSibling;
+        if (!descRow || !descRow.classList.contains('issue-desc-row')) return;
+        const isOpen = row.classList.contains('open');
+        if (isOpen) {
+            row.classList.remove('open');
+            descRow.style.display = 'none';
+        } else {
+            row.classList.add('open');
+            descRow.style.display = '';
+        }
+    }
+
+    /* ── URL 파라미터: ?tab=notices&openId=123 ── */
+    document.addEventListener('DOMContentLoaded', function () {
+        const params = new URLSearchParams(window.location.search);
+        const tab    = params.get('tab');
+        const openId = params.get('openId');
+
+        if (tab) {
+            const tabBtn = document.querySelector(`.detail-tab[onclick*="'${tab}'"]`);
+            if (tabBtn) tabBtn.click();
+        }
+
+        if (openId && tab === 'notices') {
+            setTimeout(function () {
+                const item = document.querySelector(`.notice-item[data-notice-id="${openId}"]`);
+                if (item && !item.classList.contains('open')) {
+                    toggleNotice(item);
+                    item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }, 50);
+        }
+    });
 
     /* ── 토스트 ── */
     function showToast(msg) {

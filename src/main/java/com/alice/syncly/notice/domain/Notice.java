@@ -1,6 +1,7 @@
 package com.alice.syncly.notice.domain;
 
 import com.alice.syncly.member.domain.Member;
+import com.alice.syncly.project.domain.Project;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -11,6 +12,10 @@ public class Notice {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id", nullable = false)
+    private Project project;
 
     @Column(nullable = false)
     private String title;
@@ -28,9 +33,10 @@ public class Notice {
     protected Notice() {
     }
 
-    public Notice(String title, String content, Member author) {
+    public Notice(String title, String content, Project project, Member author) {
         this.title = title;
         this.content = content;
+        this.project = project;
         this.author = author;
     }
 
@@ -40,6 +46,7 @@ public class Notice {
     }
 
     public Long getId() { return id; }
+    public Project getProject() { return project; }
     public String getTitle() { return title; }
     public String getContent() { return content; }
     public Member getAuthor() { return author; }

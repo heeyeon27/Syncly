@@ -11,144 +11,65 @@
 <div th:replace="~{fragments/layout :: header('projects')}"></div>
 
 <div class="wrap">
-    <!-- 페이지 타이틀 + 생성 버튼 -->
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; margin-bottom:14px;">
-        <h2 style="margin:0; font-size:16px; font-weight:800; color:var(--text);">전체 프로젝트</h2>
-        <button class="btn primary" style="font-size:12px;" onclick="openProjectModal()">+ 프로젝트 만들기</button>
+
+    <!-- 검색 모드: 검색 결과 헤더 -->
+    <div th:if="${searchQuery != null and !#strings.isEmpty(searchQuery)}"
+         style="display:flex; align-items:center; gap:8px; margin-top:16px; margin-bottom:14px;">
+        <h2 style="margin:0; font-size:16px; font-weight:800; color:var(--text);">검색 결과</h2>
+        <span class="muted" style="font-size:13px;"
+              th:text="|'${searchQuery}' — ${projects.size()}건|"></span>
+        <a href="/projects" class="btn" style="font-size:11px; padding:4px 10px; margin-left:auto;">전체 목록으로</a>
     </div>
 
-    <!-- 필터 바 -->
-    <div class="filter-bar">
-        <button class="filter-btn active" onclick="filterProjects('all', this)">전체</button>
-        <button class="filter-btn" onclick="filterProjects('active', this)">진행중</button>
-        <button class="filter-btn" onclick="filterProjects('pending', this)">대기</button>
-        <button class="filter-btn" onclick="filterProjects('done', this)">완료</button>
-    </div>
+    <!-- 일반 모드: 타이틀 + 생성 버튼 + 필터 바 -->
+    <th:block th:unless="${searchQuery != null and !#strings.isEmpty(searchQuery)}">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; margin-bottom:14px;">
+            <h2 style="margin:0; font-size:16px; font-weight:800; color:var(--text);">전체 프로젝트</h2>
+            <button class="btn primary" style="font-size:12px;" onclick="openProjectModal()">+ 프로젝트 만들기</button>
+        </div>
+        <div class="filter-bar">
+            <button class="filter-btn active" onclick="filterProjects('all', this)">전체</button>
+            <button class="filter-btn" onclick="filterProjects('active', this)">진행중</button>
+            <button class="filter-btn" onclick="filterProjects('done', this)">완료</button>
+        </div>
+    </th:block>
 
     <!-- 프로젝트 카드 그리드 -->
     <div id="projectGrid" class="project-grid">
-
-        <div class="project-card" data-status="active">
+        <div th:each="p : ${projects}"
+             class="project-card"
+             th:attr="data-status=${p.statusLabel}, data-id=${p.id}, data-joined=${p.joined}"
+             th:style="${p.joined} ? 'cursor:pointer;' : 'cursor:not-allowed; opacity:0.7;'"
+             onclick="goToProject(this)">
             <div class="pc-header">
-                <span class="pc-title">2024 서비스 리뉴얼</span>
-                <span class="pill green">진행중</span>
+                <span class="pc-title" th:text="${p.name}">프로젝트명</span>
+                <span th:class="${p.statusLabel == 'done'} ? 'pill blue' : 'pill green'"
+                      th:text="${p.statusBadge}">상태</span>
             </div>
-            <div class="pc-desc">메인 대시보드 및 이슈 관리 UI 전면 개편</div>
+            <div class="pc-desc" th:text="${p.description}">설명</div>
             <div class="pc-meta">
-                <span>PM: 김민준</span>
-                <span>멤버 5명</span>
-                <span>마감: 2024-06-30</span>
+                <span th:text="|PM: ${p.ownerName}|">PM</span>
+                <span th:text="|멤버 ${p.memberCount}명|">멤버</span>
+                <span th:text="|마감: ${p.endDateLabel}|">마감</span>
             </div>
             <div class="pc-footer">
-                <div class="pc-progress-bar"><span style="width:62%"></span></div>
-                <span class="muted" style="font-size:11px;">62%</span>
+                <div class="pc-progress-bar">
+                    <span th:style="|width:${p.progressRate}%|"
+                          th:class="${p.progressRate == 100} ? 'done' : ''"></span>
+                </div>
+                <span class="muted" style="font-size:11px;" th:text="|${p.progressRate}%|">0%</span>
             </div>
-            <div style="margin-top:10px;">
-                <a href="/projects/detail" class="btn" style="font-size:11px; padding:4px 10px;">상세 보기</a>
-            </div>
-        </div>
-
-        <div class="project-card" data-status="active">
-            <div class="pc-header">
-                <span class="pc-title">모바일 앱 v2.0</span>
-                <span class="pill green">진행중</span>
-            </div>
-            <div class="pc-desc">iOS/Android 앱 2.0 출시 준비 및 QA</div>
-            <div class="pc-meta">
-                <span>PM: 이서연</span>
-                <span>멤버 8명</span>
-                <span>마감: 2024-07-15</span>
-            </div>
-            <div class="pc-footer">
-                <div class="pc-progress-bar"><span style="width:38%"></span></div>
-                <span class="muted" style="font-size:11px;">38%</span>
-            </div>
-            <div style="margin-top:10px;">
-                <a href="/projects/detail" class="btn" style="font-size:11px; padding:4px 10px;">상세 보기</a>
+            <div style="margin-top:10px; text-align:right;">
+                <th:block th:if="${p.joined}">
+                    <a th:href="@{/projects/{id}(id=${p.id})}" class="btn"
+                       style="font-size:11px; padding:4px 10px;"
+                       onclick="event.stopPropagation()">상세 보기</a>
+                </th:block>
+                <span th:unless="${p.joined}" class="muted" style="font-size:11px;">🔒 접근 권한 없음</span>
             </div>
         </div>
-
-        <div class="project-card" data-status="pending">
-            <div class="pc-header">
-                <span class="pc-title">B2B 파트너 포털</span>
-                <span class="pill" style="border-color:#ffe0b2; color:#b85c00; background:#fff8f0;">대기</span>
-            </div>
-            <div class="pc-desc">파트너사 전용 포털 사이트 기획 및 개발</div>
-            <div class="pc-meta">
-                <span>PM: 박도현</span>
-                <span>멤버 3명</span>
-                <span>마감: 미정</span>
-            </div>
-            <div class="pc-footer">
-                <div class="pc-progress-bar"><span style="width:5%"></span></div>
-                <span class="muted" style="font-size:11px;">5%</span>
-            </div>
-            <div style="margin-top:10px;">
-                <a href="/projects/detail" class="btn" style="font-size:11px; padding:4px 10px;">상세 보기</a>
-            </div>
-        </div>
-
-        <div class="project-card" data-status="done">
-            <div class="pc-header">
-                <span class="pc-title">회원가입 개편</span>
-                <span class="pill blue">완료</span>
-            </div>
-            <div class="pc-desc">소셜 로그인 통합 및 가입 플로우 단순화</div>
-            <div class="pc-meta">
-                <span>PM: 최지아</span>
-                <span>멤버 4명</span>
-                <span>마감: 2024-03-31</span>
-            </div>
-            <div class="pc-footer">
-                <div class="pc-progress-bar"><span style="width:100%; background:linear-gradient(90deg,#2bb24c,#4cd96a)"></span></div>
-                <span class="muted" style="font-size:11px;">100%</span>
-            </div>
-            <div style="margin-top:10px;">
-                <a href="/projects/detail" class="btn" style="font-size:11px; padding:4px 10px;">상세 보기</a>
-            </div>
-        </div>
-
-        <div class="project-card" data-status="active">
-            <div class="pc-header">
-                <span class="pc-title">데이터 분석 플랫폼</span>
-                <span class="pill green">진행중</span>
-            </div>
-            <div class="pc-desc">사내 KPI 대시보드 및 리포트 자동화 시스템</div>
-            <div class="pc-meta">
-                <span>PM: 정하은</span>
-                <span>멤버 6명</span>
-                <span>마감: 2024-08-01</span>
-            </div>
-            <div class="pc-footer">
-                <div class="pc-progress-bar"><span style="width:21%"></span></div>
-                <span class="muted" style="font-size:11px;">21%</span>
-            </div>
-            <div style="margin-top:10px;">
-                <a href="/projects/detail" class="btn" style="font-size:11px; padding:4px 10px;">상세 보기</a>
-            </div>
-        </div>
-
-        <div class="project-card" data-status="pending">
-            <div class="pc-header">
-                <span class="pc-title">CS 자동화 봇</span>
-                <span class="pill" style="border-color:#ffe0b2; color:#b85c00; background:#fff8f0;">대기</span>
-            </div>
-            <div class="pc-desc">고객 문의 자동 분류 및 1차 응대 봇 구축</div>
-            <div class="pc-meta">
-                <span>PM: 김민준</span>
-                <span>멤버 2명</span>
-                <span>마감: 미정</span>
-            </div>
-            <div class="pc-footer">
-                <div class="pc-progress-bar"><span style="width:0%"></span></div>
-                <span class="muted" style="font-size:11px;">0%</span>
-            </div>
-            <div style="margin-top:10px;">
-                <a href="/projects/detail" class="btn" style="font-size:11px; padding:4px 10px;">상세 보기</a>
-            </div>
-        </div>
-
     </div>
+
     <div id="noResults" class="meta" style="display:none; text-align:center; padding:30px 0;">
         일치하는 프로젝트가 없습니다.
     </div>
@@ -156,8 +77,9 @@
     <div th:replace="~{fragments/layout :: footer}"></div>
 </div>
 
-<!-- 프로젝트 만들기 모달 -->
-<div id="projectModal" class="modal-overlay" style="display:none;" onclick="closeProjectModalOutside(event)">
+<!-- 프로젝트 만들기 모달 (일반 모드 전용) -->
+<th:block th:unless="${searchQuery != null and !#strings.isEmpty(searchQuery)}">
+<div id="projectModal" class="modal-overlay" style="display:none;">
     <div class="modal-box">
         <div class="modal-hd">
             <span>새 프로젝트 만들기</span>
@@ -173,19 +95,21 @@
                 <input type="text" id="modalProjectDesc" placeholder="프로젝트 목적이나 범위를 간단히 입력하세요" autocomplete="off"/>
             </div>
             <div class="field">
-                <label>멤버 초대</label>
-                <div style="position:relative;">
-                    <input type="text" id="modalMemberSearch" placeholder="이름 또는 이메일 검색" autocomplete="off"
-                           oninput="searchMembers(this.value)" onfocus="showMemberDropdown()"/>
-                    <div id="memberDropdown" class="member-dropdown" style="display:none;">
-                        <div class="member-option" onclick="addMember('김민준', 'minjun@company.com')">김민준 <span class="muted">minjun@company.com</span></div>
-                        <div class="member-option" onclick="addMember('이서연', 'seoyeon@company.com')">이서연 <span class="muted">seoyeon@company.com</span></div>
-                        <div class="member-option" onclick="addMember('박도현', 'dohyun@company.com')">박도현 <span class="muted">dohyun@company.com</span></div>
-                        <div class="member-option" onclick="addMember('최지아', 'jia@company.com')">최지아 <span class="muted">jia@company.com</span></div>
-                        <div class="member-option" onclick="addMember('정하은', 'haeun@company.com')">정하은 <span class="muted">haeun@company.com</span></div>
+                <label>기간</label>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                    <div>
+                        <label style="font-size:11px; color:var(--muted);">시작일</label>
+                        <input type="date" id="modalStartDate"/>
+                    </div>
+                    <div>
+                        <label style="font-size:11px; color:var(--muted);">마감일</label>
+                        <input type="date" id="modalEndDate"/>
                     </div>
                 </div>
-                <div id="selectedMembers" class="selected-members" style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px;"></div>
+            </div>
+            <div class="field">
+                <label>멤버 초대</label>
+                <div th:replace="~{fragments/member-invite :: inviteField}"></div>
             </div>
         </div>
         <div class="modal-ft">
@@ -194,18 +118,28 @@
         </div>
     </div>
 </div>
+</th:block>
 
 <script>
-    const selectedMemberList = [];
-    let currentFilter = 'all';
+    // ── 카드 클릭 (data-* 방식, 검색/일반 모드 공통) ──
+    function goToProject(card) {
+        const isJoined = card.dataset.joined === 'true';
+        const id = card.dataset.id;
+        if (!isJoined) {
+            alert('이 프로젝트에 대한 접근 권한이 없습니다.');
+            return;
+        }
+        window.location.href = '/projects/' + id;
+    }
 
+    // ── 필터 (일반 모드 전용) ──
+    let currentFilter = 'all';
     function filterProjects(status, btn) {
         currentFilter = status;
         document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         applyFilters();
     }
-
     function applyFilters() {
         const cards = document.querySelectorAll('.project-card');
         let visible = 0;
@@ -217,56 +151,97 @@
         document.getElementById('noResults').style.display = visible === 0 ? '' : 'none';
     }
 
+    // ── 모달 (일반 모드 전용) ──
+    const inviteSelectedList = [];
     function openProjectModal() {
         document.getElementById('projectModal').style.display = 'flex';
+        document.getElementById('modalStartDate').value = new Date().toLocaleDateString('en-CA');
         document.getElementById('modalProjectName').focus();
     }
-    function closeProjectModal() { document.getElementById('projectModal').style.display = 'none'; }
-    function closeProjectModalOutside(e) { if (e.target.id === 'projectModal') closeProjectModal(); }
-    function showMemberDropdown() {
-        document.getElementById('memberDropdown').style.display = 'block';
-        document.addEventListener('click', hideMemberDropdownOutside);
+    function closeProjectModal() {
+        document.getElementById('modalProjectName').value = '';
+        document.getElementById('modalProjectDesc').value = '';
+        document.getElementById('modalStartDate').value = '';
+        document.getElementById('modalEndDate').value = '';
+        inviteSelectedList.length = 0;
+        inviteRenderChips();
+        const dd = document.getElementById('inviteDropdown');
+        if (dd) dd.style.display = 'none';
+        document.getElementById('projectModal').style.display = 'none';
     }
-    function hideMemberDropdownOutside(e) {
-        const dd = document.getElementById('memberDropdown');
-        const input = document.getElementById('modalMemberSearch');
-        if (!dd.contains(e.target) && e.target !== input) {
-            dd.style.display = 'none';
-            document.removeEventListener('click', hideMemberDropdownOutside);
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && document.getElementById('projectModal').style.display !== 'none') {
+            closeProjectModal();
         }
+    });
+
+    let inviteSearchTimer = null;
+    function inviteSearchMembers(val) {
+        clearTimeout(inviteSearchTimer);
+        const dd = document.getElementById('inviteDropdown');
+        if (!val.trim()) { dd.style.display = 'none'; return; }
+        inviteSearchTimer = setTimeout(() => {
+            fetch(`/api/members/search?q=${encodeURIComponent(val)}`)
+                .then(r => r.json())
+                .then(members => {
+                    const filtered = members.filter(m => !inviteSelectedList.find(s => s.id === m.id));
+                    dd.innerHTML = filtered.length === 0
+                        ? '<div class="member-option muted" style="cursor:default;">검색 결과가 없습니다.</div>'
+                        : filtered.map(m =>
+                            `<div class="member-option" onclick="inviteAddMember(${m.id}, '${m.name}', '${m.email}')">${m.name} <span class="muted">${m.email}</span></div>`
+                          ).join('');
+                    dd.style.display = 'block';
+                });
+        }, 200);
     }
-    function searchMembers(val) {
-        document.querySelectorAll('.member-option').forEach(opt => {
-            opt.style.display = opt.textContent.toLowerCase().includes(val.toLowerCase()) ? '' : 'none';
-        });
-        document.getElementById('memberDropdown').style.display = 'block';
+    function inviteAddMember(id, name, email) {
+        if (inviteSelectedList.find(m => m.id === id)) return;
+        inviteSelectedList.push({ id, name, email });
+        inviteRenderChips();
+        document.getElementById('inviteSearchInput').value = '';
+        document.getElementById('inviteDropdown').style.display = 'none';
     }
-    function addMember(name, email) {
-        if (selectedMemberList.find(m => m.email === email)) return;
-        selectedMemberList.push({ name, email });
-        renderSelectedMembers();
-        document.getElementById('modalMemberSearch').value = '';
-        document.getElementById('memberDropdown').style.display = 'none';
+    function inviteRemoveMember(id) {
+        const idx = inviteSelectedList.findIndex(m => m.id === id);
+        if (idx > -1) inviteSelectedList.splice(idx, 1);
+        inviteRenderChips();
     }
-    function removeMember(email) {
-        const idx = selectedMemberList.findIndex(m => m.email === email);
-        if (idx > -1) selectedMemberList.splice(idx, 1);
-        renderSelectedMembers();
-    }
-    function renderSelectedMembers() {
-        document.getElementById('selectedMembers').innerHTML = selectedMemberList.map(m =>
-            `<span class="member-tag">${m.name} <button onclick="removeMember('${m.email}')" class="tag-remove">✕</button></span>`
+    function inviteRenderChips() {
+        document.getElementById('inviteChips').innerHTML = inviteSelectedList.map(m =>
+            `<span class="member-tag">${m.name} <button onclick="inviteRemoveMember(${m.id})" class="tag-remove">✕</button></span>`
         ).join('');
     }
+    document.addEventListener('click', e => {
+        if (!e.target.closest('#inviteSearchInput') && !e.target.closest('#inviteDropdown')) {
+            const dd = document.getElementById('inviteDropdown');
+            if (dd) dd.style.display = 'none';
+        }
+    });
     function submitProject() {
         const name = document.getElementById('modalProjectName').value.trim();
         if (!name) { alert('프로젝트 이름을 입력하세요.'); return; }
-        alert(`"${name}" 프로젝트가 생성되었습니다. (더미 동작)`);
-        closeProjectModal();
-        document.getElementById('modalProjectName').value = '';
-        document.getElementById('modalProjectDesc').value = '';
-        selectedMemberList.length = 0;
-        renderSelectedMembers();
+        const description = document.getElementById('modalProjectDesc').value.trim();
+        const startDate = document.getElementById('modalStartDate').value || null;
+        const endDate = document.getElementById('modalEndDate').value || null;
+        if (startDate && endDate && endDate < startDate) {
+            alert('마감일은 시작일 이후여야 합니다.');
+            return;
+        }
+        const invitedMemberIds = inviteSelectedList.map(m => m.id);
+        fetch('/api/projects', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, description, startDate, endDate, invitedMemberIds })
+        })
+        .then(r => {
+            if (!r.ok) throw new Error('프로젝트 생성에 실패했습니다.');
+            return r.json();
+        })
+        .then(() => {
+            closeProjectModal();
+            window.location.reload();
+        })
+        .catch(e => alert(e.message));
     }
 </script>
 </body>

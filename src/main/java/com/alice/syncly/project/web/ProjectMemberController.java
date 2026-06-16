@@ -3,8 +3,11 @@ package com.alice.syncly.project.web;
 import com.alice.syncly.project.domain.ProjectMember;
 import com.alice.syncly.project.service.ProjectMemberService;
 import com.alice.syncly.project.web.dto.ProjectMemberCreateRequest;
+import com.alice.syncly.project.web.dto.ProjectMemberResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 import java.net.URI;
 import java.util.List;
@@ -20,7 +23,7 @@ public class ProjectMemberController {
     }
 
     @PostMapping
-    public ResponseEntity<ProjectMember> create(@RequestBody ProjectMemberCreateRequest request) {
+    public ResponseEntity<ProjectMemberResponse> create(@RequestBody ProjectMemberCreateRequest request) {
         ProjectMember projectMember = projectMemberService.addMemberToProject(
                 request.getProjectId(),
                 request.getMemberId(),
@@ -28,7 +31,12 @@ public class ProjectMemberController {
         );
         return ResponseEntity
                 .created(URI.create("/api/project-members/" + projectMember.getId()))
-                .body(projectMember);
+                .body(new ProjectMemberResponse(projectMember));
+    }
+
+    @ExceptionHandler({IllegalStateException.class, IllegalArgumentException.class})
+    public ResponseEntity<Map<String, String>> handleBadRequest(RuntimeException e) {
+        return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
     }
 
     @GetMapping("/by-project/{projectId}")

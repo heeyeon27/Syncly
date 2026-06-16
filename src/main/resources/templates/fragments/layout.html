@@ -47,32 +47,15 @@
 
         <!-- 검색 영역: home / 프로젝트 페이지 공통 -->
         <th:block th:if="${activePage == 'home' or activePage == 'projects' or activePage == 'project-detail'}">
-            <form class="search" th:action="@{/}" method="get">
-                <input type="text" name="q" th:value="${param.q}"
+            <form class="search" th:action="@{/projects/search}" method="get">
+                <input type="text" name="q" th:value="${searchQuery}"
                        placeholder="프로젝트 검색 (예: 기획, 백로그, sprint, 디자인)"
                        autocomplete="off"/>
                 <button class="btn primary" type="submit">검색</button>
             </form>
             <div class="hint">
-                <span th:if="${param.q}">검색어: <b th:text="${param.q}">q</b> — 전체 프로젝트 기준</span>
-                <span th:unless="${param.q}">프로젝트 이름으로 검색하세요.</span>
-            </div>
-            <div class="search-results" th:if="${searchResults != null}">
-                <div th:if="${#lists.isEmpty(searchResults)}" class="meta" style="padding:6px 0;">
-                    일치하는 프로젝트가 없습니다.
-                </div>
-                <div th:each="p : ${searchResults}" class="search-result-item">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <b th:text="${p.name}">프로젝트명</b>
-                        <span th:if="${memberProjectIds.contains(p.id)}" class="pill green">접근 가능</span>
-                        <span th:unless="${memberProjectIds.contains(p.id)}" class="pill">비공개</span>
-                    </div>
-                    <div class="meta" th:text="${p.description != null ? p.description : '요약 없음'}">요약</div>
-                    <div class="meta" th:text="'등록일: ' + ${#temporals.format(p.createdAt, 'yyyy-MM-dd')}">날짜</div>
-                    <div th:unless="${memberProjectIds.contains(p.id)}" class="no-access">
-                        이 프로젝트에 대한 접근 권한이 없습니다.
-                    </div>
-                </div>
+                <span th:if="${searchQuery != null and !#strings.isEmpty(searchQuery)}">검색어: <b th:text="${searchQuery}">q</b> — 전체 프로젝트 기준</span>
+                <span th:unless="${searchQuery != null and !#strings.isEmpty(searchQuery)}">프로젝트 이름으로 검색하세요.</span>
             </div>
         </th:block>
     </div>

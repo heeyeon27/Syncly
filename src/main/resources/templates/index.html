@@ -34,20 +34,26 @@
 
                 <!-- 로그인: 실제 데이터 -->
                 <div sec:authorize="isAuthenticated()">
-                    <ul class="list"
-                        th:if="${myProjectMembers != null and !#lists.isEmpty(myProjectMembers)}">
-                        <li th:each="pm : ${myProjectMembers}">
-                            <div>
-                                <b th:text="${pm.project.name}">프로젝트명</b>
-                                <div class="meta" th:text="${pm.projectRole}">역할</div>
-                            </div>
-                            <span class="pill">상태 미설정</span>
-                        </li>
-                    </ul>
-                    <div th:if="${myProjectMembers == null or #lists.isEmpty(myProjectMembers)}"
-                         class="meta" style="padding:10px 0;">
-                        참여 중인 프로젝트가 없습니다.
+                    <div id="myProjectArea">
+                        <ul class="list" id="myProjectList"
+                            th:if="${myProjectMembers != null and !#lists.isEmpty(myProjectMembers)}">
+                            <li th:each="pm : ${myProjectMembers}"
+                                style="cursor:pointer;"
+                                th:onclick="|location.href='/projects/' + ${pm.project.id}|">
+                                <div>
+                                    <b th:text="${pm.project.name}">프로젝트명</b>
+                                    <div class="meta" th:text="${pm.projectRole}">역할</div>
+                                </div>
+                                <span th:class="${pm.project.status.name() == 'IN_PROGRESS'} ? 'pill green' : 'pill blue'"
+                                      th:text="${pm.project.status.name() == 'IN_PROGRESS'} ? '진행 중' : '완료'">상태</span>
+                            </li>
+                        </ul>
+                        <div th:if="${myProjectMembers == null or #lists.isEmpty(myProjectMembers)}"
+                             class="meta" style="padding:10px 0;">
+                            참여 중인 프로젝트가 없습니다.
+                        </div>
                     </div>
+                    <div id="myProjectListControls" class="page-controls"></div>
                 </div>
 
                 <!-- 프로젝트 만들기 버튼 (로그인 시 표시) -->
@@ -67,7 +73,7 @@
                     <div class="box">
                         <div class="label">진행 중</div>
                         <div class="value ok" th:text="${inProgressCount ?: 0}">0</div>
-                        <div class="meta">회사 전체 진행중 프로젝트</div>
+                        <div class="meta">전체 진행 중 프로젝트</div>
                     </div>
                     <div class="box">
                         <div class="label">대기</div>
@@ -102,12 +108,15 @@
                             <div sec:authorize="isAuthenticated()">
                                 <ul class="list"
                                     th:if="${recentProjects != null and !#lists.isEmpty(recentProjects)}">
-                                    <li th:each="p : ${recentProjects}">
+                                    <li th:each="p : ${recentProjects}"
+                                        style="cursor:pointer;"
+                                        th:onclick="|location.href='/projects/' + ${p.id}|">
                                         <div>
                                             <b th:text="${p.name}">프로젝트명</b>
-                                            <div class="meta">마감일 미설정 · 등록: <span th:text="${#temporals.format(p.createdAt, 'MM-dd')}">날짜</span></div>
+                                            <div class="meta">등록: <span th:text="${#temporals.format(p.createdAt, 'MM-dd')}">날짜</span></div>
                                         </div>
-                                        <span class="pill">상태 미설정</span>
+                                        <span th:class="${p.status.name() == 'IN_PROGRESS'} ? 'pill green' : 'pill blue'"
+                                              th:text="${p.status.name() == 'IN_PROGRESS'} ? '진행 중' : '완료'">상태</span>
                                     </li>
                                 </ul>
                                 <div th:if="${recentProjects == null or #lists.isEmpty(recentProjects)}"
@@ -152,20 +161,50 @@
                     <!-- 비로그인 blur -->
                     <div sec:authorize="isAnonymous()" class="blur-wrap" style="min-height:120px;">
                         <div class="blur-content">
-                            <ul class="list">
-                                <li><div><b>[P0] 이슈 제목</b><div class="meta">담당: - · 상태: -</div></div><span class="pill red">긴급</span></li>
-                                <li><div><b>[P1] 이슈 제목</b><div class="meta">담당: - · 상태: -</div></div><span class="pill blue">진행</span></li>
+                            <ul class="notice-list">
+                                <li class="unread-notice-item" style="display:flex; align-items:center; gap:6px; overflow:hidden;">
+                                    <span class="priority-badge urgent" style="flex-shrink:0;">긴급</span>
+                                    <strong class="unread-notice-title" style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">이슈 제목 예시</strong>
+                                    <span class="meta" style="flex-shrink:0; white-space:nowrap;">~06-20</span>
+                                </li>
+                                <li class="unread-notice-item" style="display:flex; align-items:center; gap:6px; overflow:hidden;">
+                                    <span class="priority-badge high" style="flex-shrink:0;">높음</span>
+                                    <strong class="unread-notice-title" style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">이슈 제목 예시</strong>
+                                    <span class="meta" style="flex-shrink:0; white-space:nowrap;">~06-25</span>
+                                </li>
                             </ul>
                         </div>
                         <div class="blur-msg">로그인 후 데이터를 확인할 수 있습니다</div>
                     </div>
 
-                    <!-- 로그인: Issue 엔티티 연결 전 placeholder -->
+                    <!-- 로그인: 내 담당 이슈 목록 -->
                     <div sec:authorize="isAuthenticated()">
-                        <div class="meta" style="padding:8px 0;">
-                            등록된 이슈가 없습니다.<br>
-                            <span style="font-size:11px;">(Issue 엔티티 연결 후 P0→P1→P2 순으로 표시됩니다)</span>
+                        <div id="issueArea">
+                            <ul class="notice-list" id="issueList"
+                                th:if="${myIssues != null and !#lists.isEmpty(myIssues)}">
+                                <li th:each="issue : ${myIssues}"
+                                    th:id="'issue-' + ${issue.id}"
+                                    class="unread-notice-item"
+                                    th:onclick="|location.href='/projects/' + ${issue.projectId} + '?tab=issues'|"
+                                    style="cursor:pointer; display:flex; align-items:center; gap:6px; overflow:hidden;">
+                                    <span th:class="|priority-badge ${issue.priorityClass}|"
+                                          th:text="${issue.priorityLabel}"
+                                          style="flex-shrink:0;"></span>
+                                    <strong class="unread-notice-title"
+                                            th:text="${issue.title}"
+                                            style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></strong>
+                                    <span class="meta"
+                                          style="flex-shrink:0; white-space:nowrap;"
+                                          th:text="${issue.dueDateLabel != '-'} ? |~${issue.dueDateLabel}| : '-'">마감일</span>
+                                </li>
+                            </ul>
+                            <div id="issueListEmpty"
+                                 th:classappend="${myIssues == null or #lists.isEmpty(myIssues)} ? '' : 'hidden'"
+                                 class="meta" style="padding:8px 0;">
+                                담당 이슈가 없습니다.
+                            </div>
                         </div>
+                        <div id="issueListControls" class="page-controls"></div>
                     </div>
 
                 </div>
@@ -175,11 +214,34 @@
             <div class="panel" style="margin-top:12px;">
                 <div class="hd">알림/공지</div>
                 <div class="bd">
-                    <ul class="notice-list">
-                        <li>오늘 17:00 스프린트 체크인</li>
-                        <li>신규 멤버 온보딩 문서 업데이트</li>
-                        <li>배포 전 체크리스트 점검</li>
-                    </ul>
+                    <!-- 비로그인 -->
+                    <div sec:authorize="isAnonymous()" class="meta" style="padding:8px 0;">
+                        로그인 후 공지를 확인할 수 있습니다.
+                    </div>
+                    <!-- 로그인 -->
+                    <div sec:authorize="isAuthenticated()">
+                        <div id="noticeArea">
+                            <ul class="notice-list" id="unreadNoticeList"
+                                th:if="${unreadNotices != null and !#lists.isEmpty(unreadNotices)}">
+                                <li th:each="n : ${unreadNotices}"
+                                    th:id="'notice-' + ${n.id}"
+                                    class="unread-notice-item"
+                                    th:onclick="|openNotice(${n.id}, ${n.projectId})|">
+                                    <div class="unread-notice-content">
+                                        <span class="unread-notice-project" th:text="'[' + ${n.projectName} + ']'">프로젝트</span>
+                                        <strong class="unread-notice-title" th:text="${n.title}">제목</strong>
+                                    </div>
+                                    <span class="meta" style="flex-shrink:0; margin-left:auto; padding-left:8px;" th:text="${n.createdAtLabel}">날짜</span>
+                                </li>
+                            </ul>
+                            <div id="unreadNoticeEmpty"
+                                 th:classappend="${unreadNotices == null or #lists.isEmpty(unreadNotices)} ? '' : 'hidden'"
+                                 class="meta" style="padding:8px 0;">
+                                새로운 공지가 없습니다.
+                            </div>
+                        </div>
+                        <div id="unreadNoticeControls" class="page-controls"></div>
+                    </div>
                 </div>
             </div>
 
@@ -191,7 +253,7 @@
 <script th:src="@{/js/portal.js}"></script>
 
 <!-- 프로젝트 만들기 모달 -->
-<div id="projectModal" class="modal-overlay" style="display:none;" onclick="closeProjectModalOutside(event)">
+<div id="projectModal" class="modal-overlay" style="display:none;">
     <div class="modal-box">
         <div class="modal-hd">
             <span>새 프로젝트 만들기</span>
@@ -207,17 +269,24 @@
                 <input type="text" id="modalProjectDesc" placeholder="프로젝트 목적이나 범위를 간단히 입력하세요" autocomplete="off"/>
             </div>
             <div class="field">
+                <label>기간</label>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                    <div>
+                        <label style="font-size:11px; color:var(--muted);">시작일</label>
+                        <input type="date" id="modalStartDate"/>
+                    </div>
+                    <div>
+                        <label style="font-size:11px; color:var(--muted);">마감일</label>
+                        <input type="date" id="modalEndDate"/>
+                    </div>
+                </div>
+            </div>
+            <div class="field">
                 <label>멤버 초대</label>
                 <div style="position:relative;">
                     <input type="text" id="modalMemberSearch" placeholder="이름 또는 이메일 검색" autocomplete="off"
                            oninput="searchMembers(this.value)" onfocus="showMemberDropdown()"/>
-                    <div id="memberDropdown" class="member-dropdown" style="display:none;">
-                        <div class="member-option" onclick="addMember('김민준', 'minjun@company.com')">김민준 <span class="muted">minjun@company.com</span></div>
-                        <div class="member-option" onclick="addMember('이서연', 'seoyeon@company.com')">이서연 <span class="muted">seoyeon@company.com</span></div>
-                        <div class="member-option" onclick="addMember('박도현', 'dohyun@company.com')">박도현 <span class="muted">dohyun@company.com</span></div>
-                        <div class="member-option" onclick="addMember('최지아', 'jia@company.com')">최지아 <span class="muted">jia@company.com</span></div>
-                        <div class="member-option" onclick="addMember('정하은', 'haeun@company.com')">정하은 <span class="muted">haeun@company.com</span></div>
-                    </div>
+                    <div id="memberDropdown" class="member-dropdown" style="display:none;"></div>
                 </div>
                 <div id="selectedMembers" class="selected-members" style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px;"></div>
             </div>
@@ -230,23 +299,86 @@
 </div>
 
 <script>
+    /* ── 페이징 ── */
+    const _pagers = {};
+
+    function initPaging(listId, controlsId, pageSize) {
+        const list = document.getElementById(listId);
+        if (!list || list.children.length === 0) return;
+        _pagers[listId] = { listId, controlsId, pageSize, page: 1 };
+        _renderPaging(listId);
+    }
+
+    function _renderPaging(listId) {
+        const s = _pagers[listId];
+        if (!s) return;
+        const list = document.getElementById(s.listId);
+        if (!list) return;
+        const items = Array.from(list.children);
+        const total = Math.max(1, Math.ceil(items.length / s.pageSize));
+        if (s.page > total) s.page = total;
+        const start = (s.page - 1) * s.pageSize;
+        items.forEach((el, i) => {
+            el.style.display = (i >= start && i < start + s.pageSize) ? '' : 'none';
+        });
+        const ctrl = document.getElementById(s.controlsId);
+        if (!ctrl) return;
+        if (total <= 1) { ctrl.innerHTML = ''; return; }
+        ctrl.innerHTML =
+            `<button class="page-btn" ${s.page === 1 ? 'disabled' : ''}
+                     onclick="_changePage('${listId}',-1)">‹</button>
+             <span class="page-info">${s.page} / ${total}</span>
+             <button class="page-btn" ${s.page === total ? 'disabled' : ''}
+                     onclick="_changePage('${listId}',1)">›</button>`;
+    }
+
+    function _changePage(listId, delta) {
+        if (!_pagers[listId]) return;
+        _pagers[listId].page += delta;
+        _renderPaging(listId);
+    }
+
+    /* ── 공지 클릭: 읽음 처리 후 상세 페이지로 이동 ── */
+    function openNotice(noticeId, projectId) {
+        fetch(`/api/notices/${noticeId}/read`, { method: 'POST' })
+            .finally(() => {
+                window.location.href = `/projects/${projectId}?tab=notices&openId=${noticeId}`;
+            });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        initPaging('myProjectList',   'myProjectListControls',  10);
+        initPaging('unreadNoticeList','unreadNoticeControls',    5);
+        initPaging('issueList',       'issueListControls',       5);
+    });
+
     const selectedMemberList = [];
 
     function openProjectModal() {
         document.getElementById('projectModal').style.display = 'flex';
+        document.getElementById('modalStartDate').value = new Date().toLocaleDateString('en-CA');
         document.getElementById('modalProjectName').focus();
     }
 
     function closeProjectModal() {
+        document.getElementById('modalProjectName').value = '';
+        document.getElementById('modalProjectDesc').value = '';
+        document.getElementById('modalStartDate').value = '';
+        document.getElementById('modalEndDate').value = '';
+        selectedMemberList.length = 0;
+        renderSelectedMembers();
+        document.getElementById('memberDropdown').style.display = 'none';
         document.getElementById('projectModal').style.display = 'none';
     }
-
-    function closeProjectModalOutside(e) {
-        if (e.target === document.getElementById('projectModal')) closeProjectModal();
-    }
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && document.getElementById('projectModal').style.display !== 'none') {
+            closeProjectModal();
+        }
+    });
 
     function showMemberDropdown() {
-        document.getElementById('memberDropdown').style.display = 'block';
+        const val = document.getElementById('modalMemberSearch').value.trim();
+        if (val) searchMembers(val);
         document.addEventListener('click', hideMemberDropdownOutside);
     }
 
@@ -259,24 +391,37 @@
         }
     }
 
+    let searchTimer = null;
     function searchMembers(val) {
-        const opts = document.querySelectorAll('.member-option');
-        opts.forEach(opt => {
-            opt.style.display = opt.textContent.toLowerCase().includes(val.toLowerCase()) ? '' : 'none';
-        });
-        document.getElementById('memberDropdown').style.display = 'block';
+        clearTimeout(searchTimer);
+        const dd = document.getElementById('memberDropdown');
+        if (!val.trim()) { dd.style.display = 'none'; return; }
+        searchTimer = setTimeout(() => {
+            fetch(`/api/members/search?q=${encodeURIComponent(val)}`)
+                .then(r => r.json())
+                .then(members => {
+                    if (members.length === 0) {
+                        dd.innerHTML = '<div class="member-option muted" style="cursor:default;">검색 결과가 없습니다.</div>';
+                    } else {
+                        dd.innerHTML = members.map(m =>
+                            `<div class="member-option" onclick="addMember(${m.id}, '${m.name}', '${m.email}')">${m.name} <span class="muted">${m.email}</span></div>`
+                        ).join('');
+                    }
+                    dd.style.display = 'block';
+                });
+        }, 200);
     }
 
-    function addMember(name, email) {
-        if (selectedMemberList.find(m => m.email === email)) return;
-        selectedMemberList.push({ name, email });
+    function addMember(id, name, email) {
+        if (selectedMemberList.find(m => m.id === id)) return;
+        selectedMemberList.push({ id, name, email });
         renderSelectedMembers();
         document.getElementById('modalMemberSearch').value = '';
         document.getElementById('memberDropdown').style.display = 'none';
     }
 
-    function removeMember(email) {
-        const idx = selectedMemberList.findIndex(m => m.email === email);
+    function removeMember(id) {
+        const idx = selectedMemberList.findIndex(m => m.id === id);
         if (idx > -1) selectedMemberList.splice(idx, 1);
         renderSelectedMembers();
     }
@@ -284,19 +429,36 @@
     function renderSelectedMembers() {
         const container = document.getElementById('selectedMembers');
         container.innerHTML = selectedMemberList.map(m =>
-            `<span class="member-tag">${m.name} <button onclick="removeMember('${m.email}')" class="tag-remove">✕</button></span>`
+            `<span class="member-tag">${m.name} <button onclick="removeMember(${m.id})" class="tag-remove">✕</button></span>`
         ).join('');
     }
 
     function submitProject() {
         const name = document.getElementById('modalProjectName').value.trim();
         if (!name) { alert('프로젝트 이름을 입력하세요.'); return; }
-        alert(`"${name}" 프로젝트가 생성되었습니다. (더미 동작)`);
-        closeProjectModal();
-        document.getElementById('modalProjectName').value = '';
-        document.getElementById('modalProjectDesc').value = '';
-        selectedMemberList.length = 0;
-        renderSelectedMembers();
+        const description = document.getElementById('modalProjectDesc').value.trim();
+        const startDate = document.getElementById('modalStartDate').value || null;
+        const endDate = document.getElementById('modalEndDate').value || null;
+        if (startDate && endDate && endDate < startDate) {
+            alert('마감일은 시작일 이후여야 합니다.');
+            return;
+        }
+        const invitedMemberIds = selectedMemberList.map(m => m.id);
+
+        fetch('/api/projects', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, description, startDate, endDate, invitedMemberIds })
+        })
+        .then(r => {
+            if (!r.ok) throw new Error('프로젝트 생성에 실패했습니다.');
+            return r.json();
+        })
+        .then(() => {
+            closeProjectModal();
+            window.location.href = '/projects';
+        })
+        .catch(e => alert(e.message));
     }
 </script>
 </body>

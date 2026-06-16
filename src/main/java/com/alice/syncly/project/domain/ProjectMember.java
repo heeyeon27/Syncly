@@ -21,8 +21,12 @@ public class ProjectMember {
     private Member member;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "project_role", nullable = false)
     private ProjectRole projectRole;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "participation_status", nullable = false)
+    private ParticipationStatus participationStatus;
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime joinedAt;
@@ -30,10 +34,11 @@ public class ProjectMember {
     protected ProjectMember() {
     }
 
-    public ProjectMember(Project project, Member member, ProjectRole projectRole) {
+    public ProjectMember(Project project, Member member, ProjectRole projectRole, ParticipationStatus participationStatus) {
         this.project = project;
         this.member = member;
         this.projectRole = projectRole;
+        this.participationStatus = participationStatus;
     }
 
     @PrePersist
@@ -45,5 +50,6 @@ public class ProjectMember {
     public Project getProject() { return project; }
     public Member getMember() { return member; }
     public ProjectRole getProjectRole() { return projectRole; }
+    public ParticipationStatus getParticipationStatus() { return participationStatus; }
     public LocalDateTime getJoinedAt() { return joinedAt; }
 }

@@ -178,6 +178,8 @@ a:hover { text-decoration: underline; }
   display: flex;
   flex-direction: column;
 }
+/* 이슈/공지 패널 높이 균등 분배 → 하단 정렬 */
+.right-col > .panel { flex: 1; }
 .value.ok { color: var(--accent); }
 .value.warn { color: #d48b16; }
 .value.bad { color: var(--warn); }
@@ -299,7 +301,7 @@ a:hover { text-decoration: underline; }
 .field { margin-top: 10px; }
 label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
 
-input[type="text"], input[type="password"] {
+input[type="text"], input[type="password"], input[type="date"] {
   width: 100%;
   padding: 10px 12px;
   border: 1px solid #8fb3ff;
@@ -307,6 +309,9 @@ input[type="text"], input[type="password"] {
   border-radius: 3px;
   background: #fff;
   box-shadow: 0 1px 0 rgba(255,255,255,0.8) inset;
+  font-size: inherit;
+  font-family: inherit;
+  box-sizing: border-box;
 }
 
 .actions { margin-top: 12px; display: flex; gap: 8px; align-items: center; }
@@ -362,7 +367,61 @@ input[type="text"], input[type="password"] {
   border-bottom: 1px dashed #e2e7f5;
 }
 .notice-list li:last-child { border-bottom: 0; }
-.notice-list li::before { content: '· '; color: var(--muted); }
+/* ·  점은 일반 li에만 (unread-notice-item 제외) */
+.notice-list li:not(.unread-notice-item)::before { content: '· '; color: var(--muted); }
+
+/* 홈 미읽음 공지 아이템 */
+.unread-notice-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  cursor: pointer;
+  padding: 6px 0;
+  border-bottom: 1px dashed #e2e7f5;
+}
+.unread-notice-item:last-child { border-bottom: 0; }
+.unread-notice-item:hover { background: #f5f7ff; border-radius: 4px; }
+.unread-notice-item::before { content: '· '; color: var(--muted); flex-shrink: 0; align-self: center; margin-right: 2px; }
+.unread-notice-content { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.unread-notice-project { font-size: 11px; color: var(--text); font-weight: 600; }
+.unread-notice-title { font-size: 13px; color: var(--text); font-weight: 700; }
+.hidden { display: none !important; }
+
+/* 홈 고정 높이 영역 */
+#myProjectArea { min-height: 470px; }
+#issueArea     { min-height: 235px; }
+#noticeArea    { min-height: 225px; }
+
+/* 이슈 목록 항목 앞 · */
+#issueList li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  grid-template-columns: unset;
+}
+#issueList li::before { content: '· '; color: var(--muted); flex-shrink: 0; }
+
+/* 페이징 컨트롤 */
+.page-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+.page-btn {
+  background: none;
+  border: 1px solid #d0d7e8;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--primary);
+  line-height: 1.4;
+}
+.page-btn:disabled { color: #bbb; border-color: #e5e8ef; cursor: default; }
+.page-btn:not(:disabled):hover { background: #eef1fb; }
+.page-info { font-size: 12px; color: var(--muted); }
 
 /* 이번 주 마감 작업 리스트 */
 .task-item {
@@ -683,6 +742,7 @@ input[type="text"], input[type="password"] {
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
+  table-layout: fixed;
 }
 .issue-table th {
   padding: 9px 12px;
@@ -692,14 +752,40 @@ input[type="text"], input[type="password"] {
   text-align: left;
   color: var(--muted);
   font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
 }
 .issue-table td {
   padding: 10px 12px;
   border-bottom: 1px solid #eef1fa;
   vertical-align: middle;
+  overflow: hidden;
 }
 .issue-table tr:last-child td { border-bottom: 0; }
-.issue-table tr:hover td { background: #fafbff; }
+.issue-table .issue-main-row:hover td { background: #fafbff; }
+
+/* 이슈 행 토글 open 상태 */
+.issue-main-row.open td { background: #f2f7ff; }
+.issue-main-row.open .notice-chevron { transform: rotate(180deg); color: var(--brand); }
+
+/* 이슈 설명 펼침 행 */
+.issue-desc-row td {
+  padding: 0;
+  border-bottom: 1px solid #eef1fa;
+}
+
+/* 이슈 설명 박스 (공지 notice-item-body와 동일한 스타일) */
+.issue-item-body {
+  margin: 8px 14px 14px;
+  padding: 12px 14px;
+  background: #f7f9ff;
+  border: 1px solid #dce6fa;
+  border-radius: 4px;
+  font-size: 13px;
+  line-height: 1.75;
+  color: var(--text);
+  white-space: pre-wrap;
+}
 
 .priority-badge {
   display: inline-block;
@@ -745,7 +831,7 @@ input[type="text"], input[type="password"] {
 .mc-role { margin: 3px 0; }
 .mc-info .meta { font-size: 11px; }
 
-/* 공지 행 */
+/* 공지 행 (홈 대시보드용 간단 목록) */
 .notice-row {
   display: flex;
   justify-content: space-between;
@@ -758,6 +844,80 @@ input[type="text"], input[type="password"] {
 .notice-row:hover { background: #fafbff; }
 .notice-row-title { font-size: 13px; color: var(--text); }
 .notice-row-meta { font-size: 11px; color: var(--muted); white-space: nowrap; }
+
+/* 공지 게시판 (프로젝트 상세) */
+.notice-board { width: 100%; }
+.notice-board-hd {
+  display: flex;
+  align-items: center;
+  padding: 8px 14px;
+  background: #f4f6fb;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  gap: 8px;
+}
+.notice-item {
+  border-bottom: 1px solid #eef1fa;
+  cursor: pointer;
+}
+.notice-item:last-of-type { border-bottom: 0; }
+.notice-item-row {
+  display: flex;
+  align-items: center;
+  padding: 12px 14px;
+  gap: 8px;
+  transition: background 0.1s;
+}
+.notice-item:hover .notice-item-row { background: #fafbff; }
+.notice-item.open .notice-item-row { background: #f2f7ff; }
+.notice-item-title {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.notice-item.open .notice-item-title { color: var(--brand); }
+.notice-item-author {
+  width: 80px;
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+  flex-shrink: 0;
+}
+.notice-item-date {
+  width: 88px;
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+  flex-shrink: 0;
+}
+.notice-chevron {
+  width: 18px;
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+  flex-shrink: 0;
+  transition: transform 0.2s;
+  display: inline-block;
+}
+.notice-item.open .notice-chevron { transform: rotate(180deg); color: var(--brand); }
+.notice-item-body {
+  display: none;
+  margin: 8px 14px 14px;
+  padding: 12px 14px;
+  background: #f7f9ff;
+  border: 1px solid #dce6fa;
+  border-radius: 4px;
+  font-size: 13px;
+  line-height: 1.75;
+  color: var(--text);
+  white-space: pre-wrap;
+}
 
 /* PMS 테이블 추가 열 */
 .pms-note-col { min-width: 160px; }
@@ -788,6 +948,51 @@ input[type="text"], input[type="password"] {
 /* PMS 완료된 행 스타일 */
 tr[data-status="done"] td { opacity: 0.6; }
 tr[data-status="done"] td.pms-action { opacity: 1; }
+
+/* 이슈 현재 상태 뱃지 */
+.issue-status-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.issue-status-badge.isb-todo       { background: #f1fff4; color: #187a2f; border: 1px solid #b8e7c3; }  /* 초록 */
+.issue-status-badge.isb-inprogress { background: #fff8f0; color: #b85c00; border: 1px solid #ffe0b2; }  /* 주황 */
+.issue-status-badge.isb-done       { background: #f2f7ff; color: #0d3f98; border: 1px solid #b8d5ff; }  /* 파랑 */
+.issue-status-badge.isb-hold       { background: #fff2f2; color: #9a1a1a; border: 1px solid #ffc4c4; }  /* 빨강 */
+
+/* 이슈 상태 드롭다운 */
+.issue-status-select {
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: #fff;
+  font-size: 12px;
+  color: var(--text);
+  cursor: pointer;
+  outline: none;
+  width: 76px;
+}
+.issue-status-select:disabled {
+  background: #f4f6fb;
+  color: var(--muted);
+  cursor: default;
+}
+
+/* PMS 이슈 카운트 버튼 */
+.btn-issue-count {
+  background: none;
+  border: 1px solid #ffe0b2;
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  color: #b85c00;
+  white-space: nowrap;
+}
+.btn-issue-count:hover { background: #fff8f0; }
 
 /* 완료 알림 모달 아이콘 */
 .pms-notify-icon {

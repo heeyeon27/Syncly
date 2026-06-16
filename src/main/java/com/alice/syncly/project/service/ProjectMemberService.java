@@ -3,6 +3,7 @@ package com.alice.syncly.project.service;
 import com.alice.syncly.member.domain.Member;
 import com.alice.syncly.member.repository.MemberRepository;
 import com.alice.syncly.project.domain.Project;
+import com.alice.syncly.project.domain.ParticipationStatus;
 import com.alice.syncly.project.domain.ProjectMember;
 import com.alice.syncly.project.domain.ProjectRole;
 import com.alice.syncly.project.repository.ProjectMemberRepository;
@@ -39,10 +40,17 @@ public class ProjectMemberService {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new IllegalArgumentException("Member not found: " + memberId));
 
-        ProjectMember projectMember = new ProjectMember(project, member, projectRole);
+        if (projectMemberRepository.existsByProjectIdAndMemberId(projectId, memberId)) {
+            throw new IllegalStateException("이미 프로젝트에 참여중인 멤버입니다.");
+        }
+
+        ProjectMember projectMember = new ProjectMember(project, member, projectRole, ParticipationStatus.ACTIVE);
         projectMemberRepository.save(projectMember);
 
-        slackNotifierService.sendProjectInvitation(member.getName(), project.getName());
+        slackNotifierService.sendProjectInvitations(
+                project.getOwner().getName(), project.getOwner().getSlackUserId(),
+                project.getName(), List.of(member)
+        );
 
         return projectMember;
     }
