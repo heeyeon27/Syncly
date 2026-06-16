@@ -16,13 +16,18 @@
             <div class="bd">
                 <div class="callout">
                     기본 권한은 <b>ROLE_USER</b>로 설정됩니다.<br>
-                    가입 후 로그인하면 메인(포털)에서 프로젝트/이슈를 확인할 수 있어요.
+                    가입 후 로그인하면 메인(포털)에서 프로젝트/이슈를 확인할 수 있어요.<br>
+                    가입 후 5분 뒤에 권한이 자동으로 수정됩니다.
                 </div>
-                <div class="field" style="margin-top:16px;">
-                    <div class="muted">· 이메일은 로그인 ID로 사용됩니다</div>
-                    <div class="muted">· Slack ID는 Slack 알림 연동에 사용됩니다</div>
-                    <div class="muted">· 가입 후 프로젝트 참여 요청이 가능합니다</div>
-                    <div class="muted">· 권한 변경은 관리자에게 문의하세요</div>
+                <div class="field" style="display:flex; flex-direction:column; gap:10px; margin-top:16px;">
+                    <div class="muted">· 이메일은 로그인 ID로 사용됩니다.</div>
+                    <div class="muted">· 이메일 입력 후 바로 아래 <b>[슬랙 초대장 받기]</b> 버튼을 클릭해 주세요.</div>
+                    <div class="muted">· 입력하신 메일함으로 발송된 링크를 통해 <b>'syncly-ops'</b> 슬랙에 먼저 가입해 주셔야 합니다.</div>
+                    <div class="muted" style="margin-top:4px;">· Slack ID는 Slack 알림 연동에 필수입니다.</div>
+                    <div class="muted">· 슬랙 가입 후 <b>[우측 상단 프로필]</b> ➡️ <b>[더 보기(점 3개)]</b> ➡️ <b>[멤버 ID 복사]</b>를 누릅니다.</div>
+                    <div class="muted">· 복사한 ID(예: U0123ABCDEF)를 우측 폼에 정확히 입력해 주세요.</div>
+                    <div class="muted" style="margin-top:4px;">· 가입 후 프로젝트 참여 요청이 가능합니다.</div>
+                    <div class="muted">· 권한 변경은 관리자에게 문의하세요.</div>
                 </div>
             </div>
         </section>
@@ -40,6 +45,14 @@
                         <label for="email">이메일 <span style="color:var(--muted); font-size:11px;">(@gmail.com만 허용)</span></label>
                         <input type="text" id="email" th:field="*{email}" autocomplete="username">
                         <div id="err-email" class="msg error" style="display:none; margin-top:6px;"></div>
+                        <div style="margin-top:8px; display:flex; align-items:center; gap:8px;">
+                            <button type="button" id="slackInviteBtn" onclick="sendSlackInvite()"
+                                    class="btn"
+                                    style="font-size:12px; padding:5px 12px; background:#4A154B; color:#fff; border-color:#4A154B;">
+                                슬랙 초대장 받기
+                            </button>
+                            <span id="inviteMsg" style="display:none; font-size:12px;"></span>
+                        </div>
                     </div>
                     <div class="field">
                         <label for="name">이름</label>
@@ -75,6 +88,46 @@
 
 <script th:src="@{/js/portal.js}"></script>
 <script>
+    function sendSlackInvite() {
+        const email = document.getElementById('email').value.trim();
+        const msgEl = document.getElementById('inviteMsg');
+        const btn   = document.getElementById('slackInviteBtn');
+
+        if (!email) {
+            msgEl.textContent = '이메일을 먼저 입력해주세요.';
+            msgEl.style.color = '#e24b4b';
+            msgEl.style.display = 'inline';
+            return;
+        }
+        if (!email.toLowerCase().endsWith('@gmail.com')) {
+            msgEl.textContent = 'Gmail(@gmail.com) 계정만 사용 가능합니다.';
+            msgEl.style.color = '#e24b4b';
+            msgEl.style.display = 'inline';
+            return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = '발송 중...';
+        msgEl.style.display = 'none';
+
+        fetch(`/api/mail/slack-invite?email=${encodeURIComponent(email)}`, { method: 'POST' })
+            .then(r => r.json())
+            .then(data => {
+                msgEl.textContent = data.message;
+                msgEl.style.color = data.message.includes('발송') ? '#2e7d32' : '#e24b4b';
+                msgEl.style.display = 'inline';
+            })
+            .catch(() => {
+                msgEl.textContent = '오류가 발생했습니다. 다시 시도해주세요.';
+                msgEl.style.color = '#e24b4b';
+                msgEl.style.display = 'inline';
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.textContent = '슬랙 초대장 받기';
+            });
+    }
+
     function blockKoreanPassword(input) {
         const KOREAN = /[가-힣ㄱ-ㅎㅏ-ㅣ]/g;
         if (KOREAN.test(input.value)) {

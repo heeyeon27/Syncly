@@ -32,7 +32,7 @@ public class SecurityConfig {
                         .ignoringRequestMatchers(new AntPathRequestMatcher("/api/**"))
                 )
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/dashboard", "/login", "/signup", "/error", "/css/**", "/js/**", "/images/**").permitAll()
+                        .requestMatchers("/", "/dashboard", "/login", "/signup", "/error", "/css/**", "/js/**", "/images/**", "/api/mail/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
