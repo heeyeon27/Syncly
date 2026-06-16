@@ -1,0 +1,21 @@
+# 빌드 산출물
+build/
+.gradle/
+
+# IDE 설정
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+
+# Git
+.git/
+.gitignore
+
+# 로컬 전용 시크릿 (절대 이미지에 포함되면 안 됨)
+src/main/resources/application-secret.properties
+
+# 문서 / 기타
+*.md
+HELP.md
