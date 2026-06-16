@@ -3,9 +3,11 @@ package com.alice.syncly.member.repository;
 import com.alice.syncly.member.domain.ApprovalStatus;
 import com.alice.syncly.member.domain.Member;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -14,6 +16,14 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
     Optional<Member> findByEmail(String email);
 
     boolean existsByEmail(String email);
+
+    @Modifying
+    @Query("UPDATE Member m SET m.approvalStatus = 'APPROVED', m.updatedAt = :now " +
+           "WHERE m.approvalStatus = 'PENDING' " +
+           "AND m.deletedAt IS NULL " +
+           "AND m.createdAt <= :cutoff")
+    int approveExpiredPendingMembers(@Param("cutoff") LocalDateTime cutoff,
+                                     @Param("now") LocalDateTime now);
 
     @Query("SELECT m FROM Member m WHERE m.approvalStatus = :status " +
            "AND m.id != :excludeId " +
