@@ -1,6 +1,8 @@
 package com.alice.syncly.mail.service;
 
 import jakarta.mail.internet.MimeMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -9,24 +11,37 @@ import org.springframework.stereotype.Service;
 @Service
 public class MailService {
 
+    private static final Logger log = LoggerFactory.getLogger(MailService.class);
+
     private final JavaMailSender mailSender;
 
     @Value("${slack.invite.url:}")
     private String slackInviteUrl;
+
+    @Value("${spring.mail.username:}")
+    private String mailUsername;
 
     public MailService(JavaMailSender mailSender) {
         this.mailSender = mailSender;
     }
 
     public void sendSlackInvite(String to) throws Exception {
-        MimeMessage message = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(message, "UTF-8");
+        log.info("[MailService] 슬랙 초대 메일 발송 시작 - to={}, from={}, inviteUrl={}",
+                to, mailUsername, slackInviteUrl);
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, "UTF-8");
 
-        helper.setTo(to);
-        helper.setSubject("syncly-ops 슬랙 워크스페이스 초대");
-        helper.setText(buildHtml(), true);
+            helper.setTo(to);
+            helper.setSubject("syncly-ops 슬랙 워크스페이스 초대");
+            helper.setText(buildHtml(), true);
 
-        mailSender.send(message);
+            mailSender.send(message);
+            log.info("[MailService] 메일 발송 성공 - to={}", to);
+        } catch (Exception e) {
+            log.error("[MailService] 메일 발송 실패 - to={}, 원인={}", to, e.getMessage(), e);
+            throw e;
+        }
     }
 
     private String buildHtml() {
