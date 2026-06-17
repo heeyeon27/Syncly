@@ -1179,6 +1179,10 @@
         } else {
             item.classList.add('open');
             body.style.display = 'block';
+            const noticeId = item.dataset.noticeId;
+            if (noticeId) {
+                fetch(`/api/notices/${noticeId}/read`, { method: 'POST' }).catch(() => {});
+            }
         }
     }
 
