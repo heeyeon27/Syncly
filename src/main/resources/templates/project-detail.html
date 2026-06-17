@@ -116,7 +116,7 @@
                                 <div th:text="${s.startDateLabel}" style="font-size:12px;">-</div>
                                 <div th:text="|~ ${s.endDateLabel}|" style="font-size:12px; color:var(--muted);">-</div>
                             </td>
-                            <td class="pms-note" th:text="${s.memo}">-</td>
+                            <td class="pms-note" th:text="${s.memo}" th:title="${s.memo}">-</td>
                             <td class="pms-action">
                                 <!-- 이미 완료된 행 -->
                                 <button th:if="${s.done}"
@@ -168,6 +168,7 @@
                 <div class="issue-board">
                     <div class="issue-board-hd">
                         <span style="width:80px;">우선순위</span>
+                        <span style="width:120px;">관련 작업</span>
                         <span style="flex:1;">제목</span>
                         <span style="width:100px;">담당자</span>
                         <span style="width:100px;">마감일</span>
@@ -185,6 +186,7 @@
                                     <span th:class="|priority-badge ${issue.priorityClass}|"
                                           th:text="${issue.priorityLabel}"></span>
                                 </span>
+                                <span class="issue-col-schedule" th:text="${issue.scheduleLabel}" th:title="${issue.scheduleLabel}"></span>
                                 <span class="issue-col-title" th:text="${issue.title}"></span>
                                 <span class="issue-col-assignee" th:text="${issue.assigneeName}"></span>
                                 <span class="issue-col-due" th:text="${issue.dueDateLabel}"></span>
@@ -925,6 +927,7 @@
             item.innerHTML = `
                 <div class="issue-item-row">
                     <span class="issue-col-priority"><span class="priority-badge ${PRIORITY_CLASS[issue.priority] || ''}">${PRIORITY_LABEL[issue.priority] || issue.priority}</span></span>
+                    <span class="issue-col-schedule" title="${issue.scheduleLabel || '-'}">${issue.scheduleLabel || '-'}</span>
                     <span class="issue-col-title">${issue.title || ''}</span>
                     <span class="issue-col-assignee">${issue.assigneeName || '-'}</span>
                     <span class="issue-col-due">${issue.dueDateLabel || '-'}</span>

@@ -13,7 +13,7 @@ import java.util.Map;
 
 public interface IssueRepository extends JpaRepository<Issue, Long> {
 
-    @Query("SELECT i FROM Issue i LEFT JOIN FETCH i.assignee LEFT JOIN FETCH i.reporter WHERE i.project.id = :projectId AND i.deletedAt IS NULL")
+    @Query("SELECT i FROM Issue i LEFT JOIN FETCH i.assignee LEFT JOIN FETCH i.reporter LEFT JOIN FETCH i.schedule WHERE i.project.id = :projectId AND i.deletedAt IS NULL")
     List<Issue> findByProjectIdWithMembers(@Param("projectId") Long projectId);
 
     @Query("SELECT i FROM Issue i JOIN FETCH i.project LEFT JOIN FETCH i.assignee LEFT JOIN FETCH i.reporter WHERE i.assignee.id = :memberId AND i.status <> :status AND i.deletedAt IS NULL")
