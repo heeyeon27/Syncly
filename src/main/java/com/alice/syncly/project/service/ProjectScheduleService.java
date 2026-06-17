@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -113,6 +114,18 @@ public class ProjectScheduleService {
         return list.stream()
                 .map(s -> new ProjectScheduleItemDto(s, counter.getAndIncrement(), 0))
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void updateStatus(Long scheduleId, String status) {
+        List<String> allowed = List.of("PLANNED", "IN_PROGRESS", "DELAYED");
+        if (!allowed.contains(status)) {
+            throw new IllegalArgumentException("유효하지 않은 상태값입니다: " + status);
+        }
+        ProjectSchedule schedule = scheduleRepository.findById(scheduleId)
+                .orElseThrow(() -> new IllegalArgumentException("Schedule not found: " + scheduleId));
+        schedule.setStatus(status);
+        log.info("[PMS updateStatus] scheduleId={}, status={}", scheduleId, status);
     }
 
     @Transactional
@@ -218,6 +231,42 @@ public class ProjectScheduleService {
 
         log.info("[PMS complete] scheduleId={} DONE 처리, next={}", scheduleId,
                 next != null ? next.getId() : "없음");
+    }
+
+    @Transactional
+    public void updateSchedule(Long scheduleId, Long requestMemberId,
+                               String phaseName, String title, LocalDate startDate, LocalDate endDate,
+                               String roleType, Long newProjectMemberId, String memo) {
+        ProjectSchedule schedule = scheduleRepository.findByIdWithMember(scheduleId)
+                .orElseThrow(() -> new IllegalArgumentException("Schedule not found: " + scheduleId));
+        if (schedule.getProjectMember() == null ||
+                !schedule.getProjectMember().getMember().getId().equals(requestMemberId)) {
+            throw new IllegalStateException("담당자만 수정할 수 있습니다.");
+        }
+        if (phaseName != null && !phaseName.isBlank()) schedule.setPhaseName(phaseName);
+        if (title != null && !title.isBlank()) schedule.setTitle(title);
+        if (startDate != null) schedule.setStartDate(startDate);
+        if (endDate != null) schedule.setEndDate(endDate);
+        if (roleType != null && !roleType.isBlank()) schedule.setRoleType(roleType);
+        if (memo != null) schedule.setMemo(memo.isBlank() ? null : memo);
+        if (newProjectMemberId != null) {
+            ProjectMember pm = projectMemberRepository.findById(newProjectMemberId)
+                    .orElseThrow(() -> new IllegalArgumentException("ProjectMember not found: " + newProjectMemberId));
+            schedule.setProjectMember(pm);
+        }
+        log.info("[PMS update] scheduleId={}", scheduleId);
+    }
+
+    @Transactional
+    public void deleteSchedule(Long scheduleId, Long requestMemberId) {
+        ProjectSchedule schedule = scheduleRepository.findByIdWithMember(scheduleId)
+                .orElseThrow(() -> new IllegalArgumentException("Schedule not found: " + scheduleId));
+        if (schedule.getProjectMember() == null ||
+                !schedule.getProjectMember().getMember().getId().equals(requestMemberId)) {
+            throw new IllegalStateException("담당자만 삭제할 수 있습니다.");
+        }
+        schedule.setDeletedAt(LocalDateTime.now());
+        log.info("[PMS delete] scheduleId={}", scheduleId);
     }
 
     private String resolveAssigneeName(ProjectSchedule s) {

@@ -15,8 +15,9 @@ public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Lo
 
     List<ProjectMember> findByMember(Member member);
 
-    boolean existsByProjectIdAndMemberId(Long projectId, Long memberId);
+    @Query("SELECT CASE WHEN COUNT(pm) > 0 THEN true ELSE false END FROM ProjectMember pm WHERE pm.project.id = :projectId AND pm.member.id = :memberId AND pm.deletedAt IS NULL")
+    boolean existsByProjectIdAndMemberId(@Param("projectId") Long projectId, @Param("memberId") Long memberId);
 
-    @Query("SELECT pm FROM ProjectMember pm JOIN FETCH pm.member WHERE pm.project = :project")
+    @Query("SELECT pm FROM ProjectMember pm JOIN FETCH pm.member WHERE pm.project = :project AND pm.deletedAt IS NULL")
     List<ProjectMember> findByProjectWithMember(@Param("project") Project project);
 }

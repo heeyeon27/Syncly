@@ -52,6 +52,9 @@ public class Issue {
 
     private LocalDateTime updatedAt;
 
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
     protected Issue() {
     }
 
@@ -94,4 +97,8 @@ public class Issue {
     public void setDueDate(LocalDate dueDate) { this.dueDate = dueDate; }
     public ProjectSchedule getSchedule() { return schedule; }
     public void setSchedule(ProjectSchedule schedule) { this.schedule = schedule; }
+    public LocalDateTime getDeletedAt() { return deletedAt; }
+    public void setDeletedAt(LocalDateTime deletedAt) { this.deletedAt = deletedAt; }
+    public void setTitle(String title) { this.title = title; }
+    public void setDescription(String description) { this.description = description; }
 }

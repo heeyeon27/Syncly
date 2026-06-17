@@ -12,6 +12,7 @@ import com.alice.syncly.slack.service.SlackNotifierService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -65,5 +66,19 @@ public class ProjectMemberService {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new IllegalArgumentException("Member not found: " + memberId));
         return projectMemberRepository.findByMember(member);
+    }
+
+    @Transactional
+    public void removeMember(Long projectMemberId, Long requestMemberId) {
+        ProjectMember pm = projectMemberRepository.findById(projectMemberId)
+                .orElseThrow(() -> new IllegalArgumentException("ProjectMember not found: " + projectMemberId));
+        Long ownerId = pm.getProject().getOwner().getId();
+        if (!ownerId.equals(requestMemberId)) {
+            throw new IllegalStateException("프로젝트 생성자만 멤버를 제거할 수 있습니다.");
+        }
+        if (pm.getMember().getId().equals(requestMemberId)) {
+            throw new IllegalStateException("본인은 제거할 수 없습니다.");
+        }
+        pm.setDeletedAt(LocalDateTime.now());
     }
 }

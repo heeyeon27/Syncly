@@ -13,10 +13,10 @@ import java.util.Map;
 
 public interface IssueRepository extends JpaRepository<Issue, Long> {
 
-    @Query("SELECT i FROM Issue i LEFT JOIN FETCH i.assignee LEFT JOIN FETCH i.reporter WHERE i.project.id = :projectId")
+    @Query("SELECT i FROM Issue i LEFT JOIN FETCH i.assignee LEFT JOIN FETCH i.reporter WHERE i.project.id = :projectId AND i.deletedAt IS NULL")
     List<Issue> findByProjectIdWithMembers(@Param("projectId") Long projectId);
 
-    @Query("SELECT i FROM Issue i JOIN FETCH i.project LEFT JOIN FETCH i.assignee LEFT JOIN FETCH i.reporter WHERE i.assignee.id = :memberId AND i.status <> :status")
+    @Query("SELECT i FROM Issue i JOIN FETCH i.project LEFT JOIN FETCH i.assignee LEFT JOIN FETCH i.reporter WHERE i.assignee.id = :memberId AND i.status <> :status AND i.deletedAt IS NULL")
     List<Issue> findByAssigneeIdExcludingStatus(@Param("memberId") Long memberId, @Param("status") IssueStatus status);
 
     @Query("SELECT i.schedule.id, COUNT(i) FROM Issue i WHERE i.schedule IS NOT NULL AND i.schedule.id IN :scheduleIds AND i.status <> :excludeStatus GROUP BY i.schedule.id")

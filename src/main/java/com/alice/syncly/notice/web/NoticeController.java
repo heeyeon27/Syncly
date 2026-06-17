@@ -43,6 +43,25 @@ public class NoticeController {
         return ResponseEntity.ok().build();
     }
 
+    @PatchMapping("/{id}")
+    public ResponseEntity<Void> updateNotice(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> body,
+            @AuthenticationPrincipal MemberUserDetails userDetails) {
+        String title   = body.get("title") != null ? body.get("title").toString().trim() : null;
+        String content = body.get("content") != null ? body.get("content").toString().trim() : null;
+        noticeService.updateNotice(id, userDetails.getMember().getId(), title, content);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteNotice(
+            @PathVariable Long id,
+            @AuthenticationPrincipal MemberUserDetails userDetails) {
+        noticeService.deleteNotice(id, userDetails.getMember().getId());
+        return ResponseEntity.ok().build();
+    }
+
     @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class})
     public ResponseEntity<Map<String, String>> handleBadRequest(RuntimeException e) {
         return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));

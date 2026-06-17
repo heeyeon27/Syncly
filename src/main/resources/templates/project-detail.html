@@ -75,17 +75,17 @@
                             <th class="pms-role-col">역할</th>
                             <th class="pms-member-col">담당자</th>
                             <th>차수명</th>
-                            <th>시작일</th>
-                            <th>종료일</th>
-                            <th>상태</th>
+                            <th style="width:88px;">상태</th>
+                            <th style="width:120px;">기간</th>
                             <th class="pms-note-col">메모</th>
-                            <th style="width:72px; text-align:center;">액션</th>
+                            <th style="width:72px; text-align:center;">완료</th>
                             <th style="width:60px; text-align:center;">이슈</th>
+                            <th style="width:64px;"></th>
                         </tr>
                     </thead>
                     <tbody id="pmsTableBody">
                         <tr th:each="s : ${schedules}"
-                            th:attr="data-idx=${s.rowNum}, data-person=${s.assigneeName}, data-status=${s.statusClass}, data-schedule-id=${s.id}, data-assignee-member-id=${s.assigneeMemberId}">
+                            th:attr="data-idx=${s.rowNum}, data-person=${s.assigneeName}, data-status=${s.statusClass}, data-schedule-id=${s.id}, data-assignee-member-id=${s.assigneeMemberId}, data-role-raw=${s.roleRaw}, data-project-member-id=${s.projectMemberId}, data-memo=${s.memo}">
                             <td class="pms-idx" th:text="${s.rowNum}">1</td>
                             <td><span th:class="|role-badge ${s.roleClass}|" th:text="${s.role}">역할</span></td>
                             <td>
@@ -98,21 +98,51 @@
                                 <div class="meta" th:if="${s.title != null and s.title != '-'}"
                                      th:text="${s.title}" style="font-size:11px; margin-top:2px;"></div>
                             </td>
-                            <td th:text="${s.startDateLabel}">-</td>
-                            <td th:text="${s.endDateLabel}">-</td>
-                            <td><span th:class="|status-badge ${s.statusClass}|" th:text="${s.statusLabel}">상태</span></td>
+                            <td>
+                                <!-- 완료 상태: 배지 표시 -->
+                                <span th:if="${s.done}"
+                                      th:class="|status-badge ${s.statusClass}|"
+                                      th:text="${s.statusLabel}">완료</span>
+                                <!-- 미완료: 드롭다운 -->
+                                <select th:unless="${s.done}"
+                                        class="pms-status-select"
+                                        th:attr="onchange=|updatePmsStatus(this, ${s.id})|">
+                                    <option value="PLANNED"     th:selected="${s.statusRaw == 'PLANNED'}">대기</option>
+                                    <option value="IN_PROGRESS" th:selected="${s.statusRaw == 'IN_PROGRESS'}">진행중</option>
+                                    <option value="DELAYED"     th:selected="${s.statusRaw == 'DELAYED'}">검토중</option>
+                                </select>
+                            </td>
+                            <td class="pms-period">
+                                <div th:text="${s.startDateLabel}" style="font-size:12px;">-</div>
+                                <div th:text="|~ ${s.endDateLabel}|" style="font-size:12px; color:var(--muted);">-</div>
+                            </td>
                             <td class="pms-note" th:text="${s.memo}">-</td>
                             <td class="pms-action">
+                                <!-- 이미 완료된 행 -->
                                 <button th:if="${s.done}"
                                         class="btn-done done-disabled" disabled>완료됨</button>
-                                <button th:unless="${s.done}"
+                                <!-- 미완료 + 본인이 담당자 → 활성 -->
+                                <button th:if="${!s.done and currentMemberId != null and s.assigneeMemberId == currentMemberId}"
                                         class="btn-done"
-                                        th:attr="onclick=|completePms(this, ${s.id})|">완료</button>
+                                        th:attr="onclick=|completePms(this, ${s.id})|">완료하기</button>
+                                <!-- 미완료 + 담당자 불일치 → 비활성 -->
+                                <button th:if="${!s.done and (currentMemberId == null or s.assigneeMemberId != currentMemberId)}"
+                                        class="btn-done done-disabled" disabled>완료하기</button>
                             </td>
                             <td style="text-align:center;">
                                 <button class="btn-issue-count"
                                         th:attr="onclick=|openPmsIssueModal(${s.id})|"
                                         th:text="|⚠️ ${s.issueCount}|">⚠️ 0</button>
+                            </td>
+                            <td style="text-align:center;">
+                                <!-- 담당자만 편집/삭제 가능 -->
+                                <span th:if="${!s.done and currentMemberId != null and s.assigneeMemberId == currentMemberId}"
+                                      style="display:inline-flex; gap:2px; white-space:nowrap;">
+                                    <button class="btn-icon" title="편집"
+                                            th:attr="onclick=|openPmsEditModal(${s.id})|">✏️</button>
+                                    <button class="btn-icon btn-icon-danger" title="삭제"
+                                            th:attr="onclick=|deletePms(${s.id}, this)|">🗑</button>
+                                </span>
                             </td>
                         </tr>
                         <tr th:if="${#lists.isEmpty(schedules)}">
@@ -135,60 +165,67 @@
                         onclick="openIssueModal()">+ 이슈 추가</button>
             </div>
             <div class="bd" style="padding:0;">
-                <table class="issue-table">
-                    <thead>
-                        <tr>
-                            <th style="width:80px;">우선순위</th>
-                            <th>제목</th>
-                            <th style="width:120px;">담당자</th>
-                            <th style="width:120px;">마감일</th>
-                            <th style="width:92px;">상태 변경</th>
-                            <th style="width:100px;">현재 상태</th>
-                        </tr>
-                    </thead>
-                    <tbody id="issueTableBody">
+                <div class="issue-board">
+                    <div class="issue-board-hd">
+                        <span style="width:80px;">우선순위</span>
+                        <span style="flex:1;">제목</span>
+                        <span style="width:100px;">담당자</span>
+                        <span style="width:100px;">마감일</span>
+                        <span style="width:92px; text-align:center;">상태 변경</span>
+                        <span style="width:80px;">현재 상태</span>
+                        <span style="width:60px;"></span>
+                    </div>
+                    <div id="issueTableBody">
                         <th:block th:each="issue : ${issues}">
-                        <tr class="issue-main-row"
-                            th:attr="data-issue-id=${issue.id}"
-                            style="cursor:pointer;"
-                            onclick="toggleIssueRow(this)">
-                            <td><span th:class="|priority-badge ${issue.priorityClass}|"
-                                      th:text="${issue.priorityLabel}"></span></td>
-                            <td th:text="${issue.title}" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></td>
-                            <td th:text="${issue.assigneeName}" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></td>
-                            <td th:text="${issue.dueDateLabel}"></td>
-                            <td onclick="event.stopPropagation()">
-                                <select class="issue-status-select"
-                                        th:disabled="${issue.assigneeMemberId == null or issue.assigneeMemberId != currentMemberId}"
-                                        th:attr="data-issue-id=${issue.id}"
-                                        onchange="updateIssueStatus(this)">
-                                    <option value="TODO"        th:selected="${issue.statusRaw == 'TODO'}">대기</option>
-                                    <option value="IN_PROGRESS" th:selected="${issue.statusRaw == 'IN_PROGRESS'}">진행중</option>
-                                    <option value="DONE"        th:selected="${issue.statusRaw == 'DONE'}">완료</option>
-                                    <option value="HOLD"        th:selected="${issue.statusRaw == 'HOLD'}">보류</option>
-                                </select>
-                            </td>
-                            <td style="display:flex; align-items:center; justify-content:space-between;">
-                                <span th:class="|issue-status-badge ${issue.statusClass}|"
-                                      th:text="${issue.statusLabel}"></span>
-                                <span class="notice-chevron">▼</span>
-                            </td>
-                        </tr>
-                        <tr class="issue-desc-row" style="display:none;">
-                            <td colspan="6">
-                                <div class="issue-item-body"
-                                     th:text="${issue.description != null and !#strings.isEmpty(issue.description)} ? ${issue.description} : '설명이 없습니다.'"></div>
-                            </td>
-                        </tr>
+                        <div class="issue-item"
+                             th:attr="data-issue-id=${issue.id}"
+                             onclick="toggleIssueRow(this)">
+                            <div class="issue-item-row">
+                                <span class="issue-col-priority">
+                                    <span th:class="|priority-badge ${issue.priorityClass}|"
+                                          th:text="${issue.priorityLabel}"></span>
+                                </span>
+                                <span class="issue-col-title" th:text="${issue.title}"></span>
+                                <span class="issue-col-assignee" th:text="${issue.assigneeName}"></span>
+                                <span class="issue-col-due" th:text="${issue.dueDateLabel}"></span>
+                                <span class="issue-col-status-change" onclick="event.stopPropagation()">
+                                    <select class="issue-status-select"
+                                            th:disabled="${issue.assigneeMemberId == null or issue.assigneeMemberId != currentMemberId}"
+                                            th:attr="data-issue-id=${issue.id}"
+                                            onchange="updateIssueStatus(this)">
+                                        <option value="TODO"        th:selected="${issue.statusRaw == 'TODO'}">대기</option>
+                                        <option value="IN_PROGRESS" th:selected="${issue.statusRaw == 'IN_PROGRESS'}">진행중</option>
+                                        <option value="DONE"        th:selected="${issue.statusRaw == 'DONE'}">완료</option>
+                                        <option value="HOLD"        th:selected="${issue.statusRaw == 'HOLD'}">보류</option>
+                                    </select>
+                                </span>
+                                <span class="issue-col-status">
+                                    <span th:class="|issue-status-badge ${issue.statusClass}|"
+                                          th:text="${issue.statusLabel}"></span>
+                                </span>
+                                <span class="issue-col-action" onclick="event.stopPropagation()">
+                                    <span th:if="${issue.assigneeMemberId != null and issue.assigneeMemberId == currentMemberId}"
+                                          style="display:inline-flex; gap:2px; white-space:nowrap;">
+                                        <button class="btn-icon" title="편집"
+                                                th:attr="onclick=|openIssueEditModal(${issue.id}, this)|">✏️</button>
+                                        <button class="btn-icon btn-icon-danger" title="삭제"
+                                                th:attr="onclick=|deleteIssue(${issue.id}, this)|">🗑</button>
+                                    </span>
+                                    <span th:unless="${issue.assigneeMemberId != null and issue.assigneeMemberId == currentMemberId}"
+                                          style="width:52px; display:inline-block;"></span>
+                                    <span class="notice-chevron">▼</span>
+                                </span>
+                            </div>
+                            <div class="issue-item-body"
+                                 th:text="${issue.description != null and !#strings.isEmpty(issue.description)} ? ${issue.description} : '설명이 없습니다.'"></div>
+                        </div>
                         </th:block>
-                        <tr id="issueEmptyRow" th:if="${#lists.isEmpty(issues)}">
-                            <td colspan="6" class="meta"
-                                style="text-align:center; padding:20px 0;">
-                                등록된 이슈가 없습니다.
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                        <div id="issueEmptyRow" th:if="${#lists.isEmpty(issues)}"
+                             class="meta" style="text-align:center; padding:20px 0;">
+                            등록된 이슈가 없습니다.
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -203,7 +240,8 @@
             </div>
             <div class="bd">
                 <div class="member-list-grid">
-                    <div class="member-card" th:each="pm : ${members}">
+                    <div class="member-card" th:each="pm : ${members}"
+                         th:attr="data-pm-id=${pm.id}">
                         <span class="avatar-lg" th:text="${#strings.substring(pm.member.name, 0, 1)}">-</span>
                         <div class="mc-info">
                             <div class="mc-name" th:text="${pm.member.name}">이름</div>
@@ -218,6 +256,10 @@
                             </div>
                             <div class="meta" th:text="${pm.member.email}">이메일</div>
                         </div>
+                        <!-- 프로젝트 소유자만 타인 제거 가능 -->
+                        <button th:if="${currentMemberId != null and currentMemberId == project.ownerMemberId and pm.member.id != currentMemberId}"
+                                class="btn-icon btn-icon-danger mc-remove" title="멤버 제거"
+                                th:attr="onclick=|removeMember(${pm.id}, this)|">✕</button>
                     </div>
                     <div th:if="${members == null or #lists.isEmpty(members)}"
                          class="meta" style="padding:10px 0;">
@@ -242,7 +284,7 @@
                         <span style="flex:1;">제목</span>
                         <span style="width:80px; text-align:center;">작성자</span>
                         <span style="width:88px; text-align:center;">작성일</span>
-                        <span style="width:18px;"></span>
+                        <span style="width:60px;"></span>
                     </div>
                     <div class="notice-item" th:each="n : ${notices}"
                          th:attr="data-notice-id=${n.id}"
@@ -251,6 +293,16 @@
                             <span class="notice-item-title" th:text="${n.title}">제목</span>
                             <span class="notice-item-author" th:text="${n.authorName}">작성자</span>
                             <span class="notice-item-date" th:text="${n.createdAtLabel}">날짜</span>
+                            <span th:if="${n.authorMemberId != null and n.authorMemberId == currentMemberId}"
+                                  style="display:inline-flex; gap:2px; width:60px; justify-content:flex-end; white-space:nowrap; flex-shrink:0;"
+                                  onclick="event.stopPropagation()">
+                                <button class="btn-icon" title="편집"
+                                        th:attr="onclick=|openNoticeEditModal(${n.id}, this)|">✏️</button>
+                                <button class="btn-icon btn-icon-danger" title="삭제"
+                                        th:attr="onclick=|deleteNotice(${n.id}, this)|">🗑</button>
+                            </span>
+                            <span th:unless="${n.authorMemberId != null and n.authorMemberId == currentMemberId}"
+                                  style="width:60px;"></span>
                             <span class="notice-chevron">▼</span>
                         </div>
                         <div class="notice-item-body" th:text="${n.content}">내용</div>
@@ -267,14 +319,15 @@
     <div th:replace="~{fragments/layout :: footer}"></div>
 </div>
 
-<!-- ===== 이슈 등록 모달 ===== -->
+<!-- ===== 이슈 등록/편집 모달 ===== -->
 <div id="issueModal" class="modal-overlay" style="display:none;">
     <div class="modal-box" style="width:520px;">
         <div class="modal-hd">
-            <span>이슈 등록</span>
+            <span id="issueModalTitle">이슈 등록</span>
             <button class="modal-close" onclick="closeIssueModal()">✕</button>
         </div>
         <div class="modal-bd">
+            <input type="hidden" id="issueEditId"/>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
                 <div class="field" style="grid-column:1/-1;">
                     <label>제목 <span style="color:var(--warn)">*</span></label>
@@ -286,39 +339,41 @@
                               style="width:100%; padding:9px 10px; border:1px solid #8fb3ff;
                                      border-radius:3px; font-size:13px; outline:none; resize:vertical;"></textarea>
                 </div>
-                <div class="field">
-                    <label>우선순위 <span style="color:var(--warn)">*</span></label>
-                    <select id="issuePriority" style="width:100%; padding:9px 10px; border:1px solid #8fb3ff;
-                            border-radius:3px; background:#fff; font-size:13px; outline:none;">
-                        <option value="">선택하세요</option>
-                        <option value="URGENT">긴급</option>
-                        <option value="HIGH">높음</option>
-                        <option value="MEDIUM">보통</option>
-                        <option value="LOW">낮음</option>
-                    </select>
-                </div>
-                <div class="field">
-                    <label>마감일</label>
-                    <input type="date" id="issueDueDate" style="width:100%; padding:9px 10px;
-                           border:1px solid #8fb3ff; border-radius:3px; background:#fff;
-                           font-size:13px; outline:none;"/>
-                </div>
-                <div class="field" style="grid-column:1/-1;">
-                    <label>담당자 <span style="color:var(--warn)">*</span></label>
-                    <div style="position:relative;">
-                        <input type="text" id="issueAssigneeName" placeholder="이름 검색" autocomplete="off"
-                               oninput="searchIssueAssignee(this.value)"
-                               onfocus="searchIssueAssignee(this.value)"/>
-                        <div id="issueAssigneeDropdown" class="member-dropdown" style="display:none;"></div>
+                <div id="issueRegisterFields" style="display:contents;">
+                    <div class="field">
+                        <label>우선순위 <span style="color:var(--warn)">*</span></label>
+                        <select id="issuePriority" style="width:100%; padding:9px 10px; border:1px solid #8fb3ff;
+                                border-radius:3px; background:#fff; font-size:13px; outline:none;">
+                            <option value="">선택하세요</option>
+                            <option value="URGENT">긴급</option>
+                            <option value="HIGH">높음</option>
+                            <option value="MEDIUM">보통</option>
+                            <option value="LOW">낮음</option>
+                        </select>
                     </div>
-                    <input type="hidden" id="issueAssigneeId"/>
+                    <div class="field">
+                        <label>마감일</label>
+                        <input type="date" id="issueDueDate" style="width:100%; padding:9px 10px;
+                               border:1px solid #8fb3ff; border-radius:3px; background:#fff;
+                               font-size:13px; outline:none;"/>
+                    </div>
+                    <div class="field" style="grid-column:1/-1;">
+                        <label>담당자 <span style="color:var(--warn)">*</span></label>
+                        <div style="position:relative;">
+                            <input type="text" id="issueAssigneeName" placeholder="이름 검색" autocomplete="off"
+                                   oninput="searchIssueAssignee(this.value)"
+                                   onfocus="searchIssueAssignee(this.value)"/>
+                            <div id="issueAssigneeDropdown" class="member-dropdown" style="display:none;"></div>
+                        </div>
+                        <input type="hidden" id="issueAssigneeId"/>
+                    </div>
                 </div>
             </div>
             <input type="hidden" id="issueScheduleId"/>
         </div>
         <div class="modal-ft">
             <button class="btn" onclick="closeIssueModal()">취소</button>
-            <button class="btn primary" onclick="submitIssue()">등록</button>
+            <button id="issueSubmitBtn" class="btn primary" onclick="submitIssue()">등록</button>
         </div>
     </div>
 </div>
@@ -357,14 +412,15 @@
     </div>
 </div>
 
-<!-- ===== PMS 등록 모달 ===== -->
+<!-- ===== PMS 등록/편집 모달 ===== -->
 <div id="pmsModal" class="modal-overlay" style="display:none;">
     <div class="modal-box" style="width:520px;">
         <div class="modal-hd">
-            <span>PMS 일정 등록</span>
+            <span id="pmsModalTitle">PMS 일정 등록</span>
             <button class="modal-close" onclick="closePmsModal()">✕</button>
         </div>
         <div class="modal-bd">
+            <input type="hidden" id="pmsEditId"/>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
                 <div class="field">
                     <label>역할 <span style="color:var(--warn)">*</span></label>
@@ -407,7 +463,7 @@
                     <input type="date" id="pmsEnd" style="width:100%; padding:9px 10px; border:1px solid #8fb3ff;
                            border-radius:3px; background:#fff; font-size:13px; outline:none;"/>
                 </div>
-                <div class="field">
+                <div id="pmsStatusField" class="field">
                     <label>상태</label>
                     <select id="pmsStatus" style="width:100%; padding:9px 10px; border:1px solid #8fb3ff;
                             border-radius:3px; background:#fff; font-size:13px; outline:none;">
@@ -425,7 +481,7 @@
         </div>
         <div class="modal-ft">
             <button class="btn" onclick="closePmsModal()">취소</button>
-            <button class="btn primary" onclick="submitPms()">등록</button>
+            <button id="pmsSubmitBtn" class="btn primary" onclick="submitPms()">등록</button>
         </div>
     </div>
 </div>
@@ -447,14 +503,15 @@
     </div>
 </div>
 
-<!-- ===== 공지 작성 모달 ===== -->
+<!-- ===== 공지 작성/편집 모달 ===== -->
 <div id="noticeModal" class="modal-overlay" style="display:none;">
     <div class="modal-box" style="width:520px;">
         <div class="modal-hd">
-            <span>공지 작성</span>
+            <span id="noticeModalTitle">공지 작성</span>
             <button class="modal-close" onclick="closeNoticeModal()">✕</button>
         </div>
         <div class="modal-bd">
+            <input type="hidden" id="noticeEditId"/>
             <div class="field">
                 <label>제목 <span style="color:var(--warn)">*</span></label>
                 <input type="text" id="noticeTitle" placeholder="공지 제목" autocomplete="off"/>
@@ -468,7 +525,7 @@
         </div>
         <div class="modal-ft">
             <button class="btn" onclick="closeNoticeModal()">취소</button>
-            <button class="btn primary" onclick="submitNotice()">등록</button>
+            <button id="noticeSubmitBtn" class="btn primary" onclick="submitNotice()">등록</button>
         </div>
     </div>
 </div>
@@ -484,6 +541,8 @@
     /*[/]*/
     /* ── 현재 로그인 멤버 ID ── */
     const CURRENT_MEMBER_ID = [[${currentMemberId}]];
+    /* ── 프로젝트 소유자 멤버 ID ── */
+    const PROJECT_OWNER_ID = [[${project.ownerMemberId}]];
 </script>
 
 <script>
@@ -495,10 +554,37 @@
         btn.classList.add('active');
     }
 
-    /* ── PMS 등록 모달 ── */
+    /* ── PMS 등록/편집 모달 ── */
     function openPmsModal() {
+        clearPmsForm();
+        document.getElementById('pmsModalTitle').textContent = 'PMS 일정 등록';
+        document.getElementById('pmsSubmitBtn').textContent  = '등록';
+        document.getElementById('pmsStatusField').style.display = '';
         document.getElementById('pmsModal').style.display = 'flex';
         document.getElementById('pmsRole').focus();
+    }
+    function openPmsEditModal(id) {
+        clearPmsForm();
+        const row = document.querySelector(`tr[data-schedule-id="${id}"]`);
+        document.getElementById('pmsEditId').value  = id;
+        document.getElementById('pmsRole').value    = row?.dataset.roleRaw || '';
+        const pmId   = row?.dataset.projectMemberId || '';
+        const person = row?.dataset.person || '';
+        document.getElementById('pmsAssigneeId').value = pmId;
+        document.getElementById('pmsPerson').value     = person !== '미배정' ? person : '';
+        const phase = row?.querySelector('.pms-phase span')?.textContent.trim() || '';
+        const title = row?.querySelector('.pms-phase .meta')?.textContent.trim() || '';
+        document.getElementById('pmsPhase').value = phase !== '-' ? phase : '';
+        document.getElementById('pmsTitle').value = title;
+        const periodDivs = row?.querySelectorAll('.pms-period div');
+        document.getElementById('pmsStart').value = periodDivs?.[0]?.textContent.trim().replace('-', '') || '';
+        document.getElementById('pmsEnd').value   = periodDivs?.[1]?.textContent.trim().replace('~ ', '').replace('-', '') || '';
+        const memo = row?.dataset.memo || '';
+        document.getElementById('pmsMemo').value = memo !== '-' ? memo : '';
+        document.getElementById('pmsModalTitle').textContent = 'PMS 일정 편집';
+        document.getElementById('pmsSubmitBtn').textContent  = '저장';
+        document.getElementById('pmsStatusField').style.display = 'none';
+        document.getElementById('pmsModal').style.display = 'flex';
     }
     function closePmsModal() {
         clearPmsForm();
@@ -538,51 +624,91 @@
     });
 
     function submitPms() {
+        const editId          = document.getElementById('pmsEditId').value;
         const role            = document.getElementById('pmsRole').value;
         const phaseName       = document.getElementById('pmsPhase').value.trim();
         const title           = document.getElementById('pmsTitle').value.trim();
-        const start           = document.getElementById('pmsStart').value || null;
-        const end             = document.getElementById('pmsEnd').value || null;
-        const status          = document.getElementById('pmsStatus').value;
-        const memo            = document.getElementById('pmsMemo').value.trim() || null;
-        const projectMemberId = document.getElementById('pmsAssigneeId').value
-                                ? Number(document.getElementById('pmsAssigneeId').value) : null;
+        const startDate       = document.getElementById('pmsStart').value || '';
+        const endDate         = document.getElementById('pmsEnd').value || '';
+        const memo            = document.getElementById('pmsMemo').value.trim();
+        const projectMemberId = document.getElementById('pmsAssigneeId').value || '';
 
-        if (!PROJECT_ID) { alert('프로젝트 ID를 확인할 수 없습니다. 페이지를 새로고침해주세요.'); return; }
         if (!role)      { alert('역할을 선택하세요.'); return; }
         if (!phaseName) { alert('차수명을 입력하세요.'); return; }
         if (!title)     { alert('업무명을 입력하세요.'); return; }
-        if (!start)     { alert('시작일을 입력하세요.'); return; }
-        if (!end)       { alert('종료일을 입력하세요.'); return; }
-        if (end < start){ alert('종료일은 시작일 이후여야 합니다.'); return; }
 
-        fetch('/api/pms/register', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                projectId: PROJECT_ID,
-                phaseName,
-                projectMemberId,
-                role,
-                title,
-                startDate: start,
-                endDate: end,
-                status,
-                memo: memo
+        if (editId) {
+            // ── 편집 모드 ──
+            fetch(`/api/schedules/${editId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phaseName, title, startDate, endDate, roleType: role, projectMemberId, memo })
             })
-        })
-        .then(r => {
-            if (!r.ok) return r.json().then(e => { throw new Error(e.message || '등록에 실패했습니다.'); });
-            closePmsModal();
-            clearPmsForm();
-            window.location.href = '/projects/' + PROJECT_ID + '?tab=pms';
-        })
-        .catch(e => alert(e.message));
+            .then(r => {
+                if (!r.ok) return r.json().then(e => { throw new Error(e.message || '수정에 실패했습니다.'); });
+                closePmsModal();
+                const row = document.querySelector(`tr[data-schedule-id="${editId}"]`);
+                if (row) {
+                    const phaseCell = row.querySelector('.pms-phase');
+                    if (phaseCell) {
+                        phaseCell.querySelector('span').textContent = phaseName;
+                        const meta = phaseCell.querySelector('.meta');
+                        if (meta) meta.textContent = title;
+                    }
+                    const periodCell = row.querySelector('.pms-period');
+                    if (periodCell) {
+                        const divs = periodCell.querySelectorAll('div');
+                        if (divs[0]) divs[0].textContent = startDate || '-';
+                        if (divs[1]) divs[1].textContent = '~ ' + (endDate || '-');
+                    }
+                    const memoCell = row.querySelector('.pms-note');
+                    if (memoCell) memoCell.textContent = memo || '-';
+                    if (role) row.dataset.roleRaw = role;
+                    if (projectMemberId) {
+                        row.dataset.projectMemberId = projectMemberId;
+                        const sel = PROJECT_MEMBERS.find(m => m.id === Number(projectMemberId));
+                        if (sel) {
+                            row.dataset.person = sel.name;
+                            const memberTd = row.querySelector('td:nth-child(3)');
+                            if (memberTd) {
+                                memberTd.querySelector('span:first-child').textContent = sel.name.charAt(0);
+                                memberTd.querySelector('span:last-child').textContent  = sel.name;
+                            }
+                        }
+                    }
+                    row.dataset.memo = memo || '-';
+                }
+                showToast('수정되었습니다.');
+            })
+            .catch(e => alert(e.message));
+        } else {
+            // ── 등록 모드 ──
+            if (!PROJECT_ID) { alert('프로젝트 ID를 확인할 수 없습니다. 페이지를 새로고침해주세요.'); return; }
+            if (!startDate)  { alert('시작일을 입력하세요.'); return; }
+            if (!endDate)    { alert('종료일을 입력하세요.'); return; }
+            if (endDate < startDate) { alert('종료일은 시작일 이후여야 합니다.'); return; }
+            const status = document.getElementById('pmsStatus').value;
+            fetch('/api/pms/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    projectId: PROJECT_ID, phaseName,
+                    projectMemberId: projectMemberId ? Number(projectMemberId) : null,
+                    role, title, startDate, endDate, status, memo: memo || null
+                })
+            })
+            .then(r => {
+                if (!r.ok) return r.json().then(e => { throw new Error(e.message || '등록에 실패했습니다.'); });
+                closePmsModal();
+                window.location.href = '/projects/' + PROJECT_ID + '?tab=pms';
+            })
+            .catch(e => alert(e.message));
+        }
     }
 
     function clearPmsForm() {
         ['pmsRole', 'pmsStatus'].forEach(id => document.getElementById(id).selectedIndex = 0);
-        ['pmsPhase', 'pmsTitle', 'pmsStart', 'pmsEnd', 'pmsMemo', 'pmsPerson', 'pmsAssigneeId'].forEach(id => document.getElementById(id).value = '');
+        ['pmsEditId', 'pmsPhase', 'pmsTitle', 'pmsStart', 'pmsEnd', 'pmsMemo', 'pmsPerson', 'pmsAssigneeId'].forEach(id => document.getElementById(id).value = '');
         document.getElementById('pmsAssigneeDropdown').style.display = 'none';
     }
 
@@ -599,10 +725,12 @@
                 const allRows = Array.from(tbody.querySelectorAll('tr'));
                 const idx    = allRows.indexOf(row);
 
-                // 현재 행 상태 → 완료
+                // 현재 행 상태 → 완료 (드롭다운 → 배지로 교체)
                 row.dataset.status = 'done';
-                row.querySelector('.status-badge').className = 'status-badge done';
-                row.querySelector('.status-badge').textContent = '완료';
+                const statusTd = row.querySelector('.pms-status-select')?.closest('td');
+                if (statusTd) {
+                    statusTd.innerHTML = '<span class="status-badge done">완료</span>';
+                }
                 btn.textContent = '완료됨';
                 btn.classList.add('done-disabled');
                 btn.disabled = true;
@@ -625,6 +753,17 @@
             .catch(e => alert(e.message));
     }
 
+    /* ── PMS 상태 드롭다운 변경 ── */
+    function updatePmsStatus(select, scheduleId) {
+        fetch(`/api/schedules/${scheduleId}/status`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: select.value })
+        })
+        .then(r => { if (!r.ok) throw new Error('상태 변경에 실패했습니다.'); })
+        .catch(e => alert(e.message));
+    }
+
     function closePmsNotify() {
         document.getElementById('pmsNotifyModal').style.display = 'none';
         window.location.href = '/projects/' + PROJECT_ID + '?tab=pms';
@@ -637,15 +776,30 @@
     const ISSUE_STATUS_BADGE = { TODO: 'isb-todo', IN_PROGRESS: 'isb-inprogress', DONE: 'isb-done', HOLD: 'isb-hold' };
 
     function _clearIssueForm() {
-        ['issueTitle', 'issueDesc', 'issueDueDate', 'issueAssigneeName', 'issueAssigneeId', 'issueScheduleId']
+        ['issueEditId', 'issueTitle', 'issueDesc', 'issueDueDate', 'issueAssigneeName', 'issueAssigneeId', 'issueScheduleId']
             .forEach(id => document.getElementById(id).value = '');
         document.getElementById('issuePriority').selectedIndex = 0;
         document.getElementById('issueAssigneeDropdown').style.display = 'none';
     }
     function openIssueModal() {
         _clearIssueForm();
+        document.getElementById('issueRegisterFields').style.display = 'contents';
+        document.getElementById('issueModalTitle').textContent = '이슈 등록';
+        document.getElementById('issueSubmitBtn').textContent  = '등록';
         document.getElementById('issueModal').style.display = 'flex';
         document.getElementById('issueTitle').focus();
+    }
+    function openIssueEditModal(id, btn) {
+        _clearIssueForm();
+        const item = btn.closest('.issue-item');
+        document.getElementById('issueEditId').value  = id;
+        document.getElementById('issueTitle').value   = item?.querySelector('.issue-col-title')?.textContent.trim() || '';
+        const desc = item?.querySelector('.issue-item-body')?.textContent.trim() || '';
+        document.getElementById('issueDesc').value    = desc === '설명이 없습니다.' ? '' : desc;
+        document.getElementById('issueRegisterFields').style.display = 'none';
+        document.getElementById('issueModalTitle').textContent = '이슈 편집';
+        document.getElementById('issueSubmitBtn').textContent  = '저장';
+        document.getElementById('issueModal').style.display = 'flex';
     }
     /* PMS 행의 ⚠️ 아이콘 클릭 시 — 담당자 자동 세팅 */
     function openPmsIssueModal(scheduleId) {
@@ -660,6 +814,9 @@
             }
         }
         document.getElementById('issueScheduleId').value = scheduleId;
+        document.getElementById('issueRegisterFields').style.display = 'contents';
+        document.getElementById('issueModalTitle').textContent = '이슈 등록';
+        document.getElementById('issueSubmitBtn').textContent  = '등록';
         document.getElementById('issueModal').style.display = 'flex';
         document.getElementById('issueTitle').focus();
     }
@@ -693,15 +850,37 @@
         }
     });
     function submitIssue() {
-        const title      = document.getElementById('issueTitle').value.trim();
-        const desc       = document.getElementById('issueDesc').value.trim() || null;
+        const editId  = document.getElementById('issueEditId').value;
+        const title   = document.getElementById('issueTitle').value.trim();
+        const desc    = document.getElementById('issueDesc').value.trim();
+        if (!title) { alert('제목을 입력하세요.'); return; }
+        if (editId) {
+            fetch(`/api/issues/${editId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title, description: desc })
+            })
+            .then(r => {
+                if (!r.ok) return r.json().then(e => { throw new Error(e.message || '수정에 실패했습니다.'); });
+                closeIssueModal();
+                const item = document.querySelector(`.issue-item[data-issue-id="${editId}"]`);
+                if (item) {
+                    const titleCol = item.querySelector('.issue-col-title');
+                    if (titleCol) titleCol.textContent = title;
+                    const body = item.querySelector('.issue-item-body');
+                    if (body) body.textContent = desc || '설명이 없습니다.';
+                }
+                showToast('수정되었습니다.');
+            })
+            .catch(e => alert(e.message));
+            return;
+        }
         const priority   = document.getElementById('issuePriority').value;
         const dueDate    = document.getElementById('issueDueDate').value || null;
         const assigneeId = document.getElementById('issueAssigneeId').value
                            ? Number(document.getElementById('issueAssigneeId').value) : null;
         const scheduleId = document.getElementById('issueScheduleId').value
                            ? Number(document.getElementById('issueScheduleId').value) : null;
-        if (!title)      { alert('제목을 입력하세요.'); return; }
         if (!priority)   { alert('우선순위를 선택하세요.'); return; }
         if (!assigneeId) { alert('담당자를 선택하세요.'); return; }
         fetch('/api/issues', {
@@ -739,29 +918,27 @@
             ).join('');
             const badgeClass = ISSUE_STATUS_BADGE[issue.status] || 'isb-todo';
             const badgeLabel = ISSUE_STATUS_LABEL[issue.status] || issue.status;
-            const tr = document.createElement('tr');
-            tr.className = 'issue-main-row';
-            tr.style.cursor = 'pointer';
-            tr.dataset.issueId = issue.id;
-            tr.setAttribute('onclick', 'toggleIssueRow(this)');
-            tr.innerHTML = `
-                <td><span class="priority-badge ${PRIORITY_CLASS[issue.priority] || ''}">${PRIORITY_LABEL[issue.priority] || issue.priority}</span></td>
-                <td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${issue.title || ''}</td>
-                <td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${issue.assigneeName || '-'}</td>
-                <td>${issue.dueDateLabel || '-'}</td>
-                <td onclick="event.stopPropagation()"><select class="issue-status-select" data-issue-id="${issue.id}"
-                            ${isMyIssue ? '' : 'disabled'}
-                            onchange="updateIssueStatus(this)">${optHtml}</select></td>
-                <td style="display:flex;align-items:center;justify-content:space-between;">
-                    <span class="issue-status-badge ${badgeClass}">${badgeLabel}</span>
-                    <span class="notice-chevron">▼</span>
-                </td>`;
-            const descTr = document.createElement('tr');
-            descTr.className = 'issue-desc-row';
-            descTr.style.display = 'none';
-            descTr.innerHTML = `<td colspan="6"><div class="issue-item-body">${issue.description || '설명이 없습니다.'}</div></td>`;
-            tbody.appendChild(tr);
-            tbody.appendChild(descTr);
+            const item = document.createElement('div');
+            item.className = 'issue-item';
+            item.dataset.issueId = issue.id;
+            item.setAttribute('onclick', 'toggleIssueRow(this)');
+            item.innerHTML = `
+                <div class="issue-item-row">
+                    <span class="issue-col-priority"><span class="priority-badge ${PRIORITY_CLASS[issue.priority] || ''}">${PRIORITY_LABEL[issue.priority] || issue.priority}</span></span>
+                    <span class="issue-col-title">${issue.title || ''}</span>
+                    <span class="issue-col-assignee">${issue.assigneeName || '-'}</span>
+                    <span class="issue-col-due">${issue.dueDateLabel || '-'}</span>
+                    <span class="issue-col-status-change" onclick="event.stopPropagation()"><select class="issue-status-select" data-issue-id="${issue.id}" ${isMyIssue ? '' : 'disabled'} onchange="updateIssueStatus(this)">${optHtml}</select></span>
+                    <span class="issue-col-status"><span class="issue-status-badge ${badgeClass}">${badgeLabel}</span></span>
+                    <span class="issue-col-action" onclick="event.stopPropagation()">
+                        ${isMyIssue
+                            ? `<span style="display:inline-flex;gap:2px;white-space:nowrap;"><button class="btn-icon" title="편집" onclick="openIssueEditModal(${issue.id}, this)">✏️</button><button class="btn-icon btn-icon-danger" title="삭제" onclick="deleteIssue(${issue.id}, this)">🗑</button></span>`
+                            : `<span style="width:52px;display:inline-block;"></span>`}
+                        <span class="notice-chevron">▼</span>
+                    </span>
+                </div>
+                <div class="issue-item-body" style="display:none;">${issue.description || '설명이 없습니다.'}</div>`;
+            tbody.appendChild(item);
         })
         .catch(e => alert(e.message));
     }
@@ -780,7 +957,7 @@
         .then(r => {
             if (!r.ok) return r.json().then(e => { throw new Error(e.message || '상태 변경에 실패했습니다.'); });
             // 성공 시 현재 상태 뱃지 업데이트
-            const badge = select.closest('tr').querySelector('.issue-status-badge');
+            const badge = select.closest('.issue-item').querySelector('.issue-status-badge');
             if (badge) {
                 badge.className = `issue-status-badge ${ISSUE_STATUS_BADGE[status] || ''}`;
                 badge.textContent = ISSUE_STATUS_LABEL[status] || status;
@@ -903,12 +1080,24 @@
 
     /* ── 공지 모달 ── */
     function openNoticeModal() {
+        document.getElementById('noticeEditId').value = '';
+        document.getElementById('noticeTitle').value = '';
+        document.getElementById('noticeContent').value = '';
+        document.getElementById('noticeModalTitle').textContent = '공지 작성';
+        document.getElementById('noticeSubmitBtn').textContent  = '등록';
         document.getElementById('noticeModal').style.display = 'flex';
         document.getElementById('noticeTitle').focus();
     }
+    function openNoticeEditModal(id, btn) {
+        const item = btn.closest('.notice-item');
+        document.getElementById('noticeEditId').value    = id;
+        document.getElementById('noticeTitle').value     = item?.querySelector('.notice-item-title')?.textContent.trim() || '';
+        document.getElementById('noticeContent').value   = item?.querySelector('.notice-item-body')?.textContent.trim()  || '';
+        document.getElementById('noticeModalTitle').textContent = '공지 편집';
+        document.getElementById('noticeSubmitBtn').textContent  = '저장';
+        document.getElementById('noticeModal').style.display = 'flex';
+    }
     function closeNoticeModal() {
-        document.getElementById('noticeTitle').value = '';
-        document.getElementById('noticeContent').value = '';
         document.getElementById('noticeModal').style.display = 'none';
     }
     document.addEventListener('keydown', function(e) {
@@ -919,41 +1108,66 @@
         if (document.getElementById('noticeModal').style.display    !== 'none') { closeNoticeModal();    return; }
     });
     function submitNotice() {
+        const editId  = document.getElementById('noticeEditId').value;
         const title   = document.getElementById('noticeTitle').value.trim();
         const content = document.getElementById('noticeContent').value.trim();
         if (!title)   { alert('제목을 입력하세요.'); return; }
         if (!content) { alert('내용을 입력하세요.'); return; }
-        fetch('/api/notices', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ projectId: PROJECT_ID, title, content })
-        })
-        .then(r => {
-            if (!r.ok) return r.json().then(e => { throw new Error(e.message || '등록에 실패했습니다.'); });
-            return r.json();
-        })
-        .then(notice => {
-            closeNoticeModal();
-            const board = document.querySelector('.notice-board');
-            const emptyMsg = board.querySelector('#noticeEmpty');
-            if (emptyMsg) emptyMsg.remove();
-            const item = document.createElement('div');
-            item.className = 'notice-item';
-            item.setAttribute('data-notice-id', notice.id);
-            item.onclick = function() { toggleNotice(this); };
-            item.innerHTML = `
-                <div class="notice-item-row">
-                    <span class="notice-item-title">${notice.title}</span>
-                    <span class="notice-item-author">${notice.authorName}</span>
-                    <span class="notice-item-date">${notice.createdAtLabel}</span>
-                    <span class="notice-chevron">▼</span>
-                </div>
-                <div class="notice-item-body">${notice.content}</div>`;
-            // 헤더 바로 다음에 삽입 (최신순)
-            const header = board.querySelector('.notice-board-hd');
-            header.insertAdjacentElement('afterend', item);
-        })
-        .catch(e => alert(e.message));
+        if (editId) {
+            fetch(`/api/notices/${editId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title, content })
+            })
+            .then(r => {
+                if (!r.ok) return r.json().then(e => { throw new Error(e.message || '수정에 실패했습니다.'); });
+                closeNoticeModal();
+                const item = document.querySelector(`.notice-item[data-notice-id="${editId}"]`);
+                if (item) {
+                    const titleEl = item.querySelector('.notice-item-title');
+                    if (titleEl) titleEl.textContent = title;
+                    const bodyEl = item.querySelector('.notice-item-body');
+                    if (bodyEl) bodyEl.textContent = content;
+                }
+                showToast('수정되었습니다.');
+            })
+            .catch(e => alert(e.message));
+        } else {
+            fetch('/api/notices', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ projectId: PROJECT_ID, title, content })
+            })
+            .then(r => {
+                if (!r.ok) return r.json().then(e => { throw new Error(e.message || '등록에 실패했습니다.'); });
+                return r.json();
+            })
+            .then(notice => {
+                closeNoticeModal();
+                const board = document.querySelector('.notice-board');
+                const emptyMsg = board.querySelector('#noticeEmpty');
+                if (emptyMsg) emptyMsg.remove();
+                const item = document.createElement('div');
+                item.className = 'notice-item';
+                item.setAttribute('data-notice-id', notice.id);
+                item.onclick = function() { toggleNotice(this); };
+                item.innerHTML = `
+                    <div class="notice-item-row">
+                        <span class="notice-item-title">${notice.title}</span>
+                        <span class="notice-item-author">${notice.authorName}</span>
+                        <span class="notice-item-date">${notice.createdAtLabel}</span>
+                        <span style="display:inline-flex; gap:2px; width:60px; justify-content:flex-end; white-space:nowrap; flex-shrink:0;" onclick="event.stopPropagation()">
+                            <button class="btn-icon" title="편집" onclick="openNoticeEditModal(${notice.id}, this)">✏️</button>
+                            <button class="btn-icon btn-icon-danger" title="삭제" onclick="deleteNotice(${notice.id}, this)">🗑</button>
+                        </span>
+                        <span class="notice-chevron">▼</span>
+                    </div>
+                    <div class="notice-item-body">${notice.content}</div>`;
+                const header = board.querySelector('.notice-board-hd');
+                header.insertAdjacentElement('afterend', item);
+            })
+            .catch(e => alert(e.message));
+        }
     }
     function toggleNotice(item) {
         const body    = item.querySelector('.notice-item-body');
@@ -969,16 +1183,16 @@
     }
 
     /* ── 이슈 행 설명 토글 ── */
-    function toggleIssueRow(row) {
-        const descRow = row.nextElementSibling;
-        if (!descRow || !descRow.classList.contains('issue-desc-row')) return;
-        const isOpen = row.classList.contains('open');
+    function toggleIssueRow(item) {
+        const body = item.querySelector('.issue-item-body');
+        if (!body) return;
+        const isOpen = item.classList.contains('open');
         if (isOpen) {
-            row.classList.remove('open');
-            descRow.style.display = 'none';
+            item.classList.remove('open');
+            body.style.display = 'none';
         } else {
-            row.classList.add('open');
-            descRow.style.display = '';
+            item.classList.add('open');
+            body.style.display = 'block';
         }
     }
 
@@ -1005,7 +1219,7 @@
 
         if (openId && tab === 'issues') {
             setTimeout(function () {
-                const row = document.querySelector(`.issue-main-row[data-issue-id="${openId}"]`);
+                const row = document.querySelector(`.issue-item[data-issue-id="${openId}"]`);
                 if (row && !row.classList.contains('open')) {
                     toggleIssueRow(row);
                     row.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1021,6 +1235,61 @@
         t.style.display = 'block';
         t.classList.add('show');
         setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.style.display = 'none', 300); }, 2500);
+    }
+
+
+    /* ── PMS 삭제 ── */
+    function deletePms(id, btn) {
+        if (!confirm('이 일정을 삭제하시겠습니까?')) return;
+        fetch(`/api/schedules/${id}`, { method: 'DELETE' })
+        .then(r => {
+            if (!r.ok) return r.json().then(e => { throw new Error(e.message || '삭제에 실패했습니다.'); });
+            const row = btn.closest('tr');
+            if (row) row.remove();
+            showToast('삭제되었습니다.');
+        })
+        .catch(e => alert(e.message));
+    }
+
+    /* ── 이슈 삭제 ── */
+    function deleteIssue(id, btn) {
+        if (!confirm('이 이슈를 삭제하시겠습니까?')) return;
+        fetch(`/api/issues/${id}`, { method: 'DELETE' })
+        .then(r => {
+            if (!r.ok) return r.json().then(e => { throw new Error(e.message || '삭제에 실패했습니다.'); });
+            const row = btn.closest('.issue-item');
+            if (row) row.remove();
+            showToast('삭제되었습니다.');
+        })
+        .catch(e => alert(e.message));
+    }
+
+    /* ── 공지 삭제 ── */
+    function deleteNotice(id, btn) {
+        if (!confirm('이 공지를 삭제하시겠습니까?')) return;
+        fetch(`/api/notices/${id}`, { method: 'DELETE' })
+        .then(r => {
+            if (!r.ok) return r.json().then(e => { throw new Error(e.message || '삭제에 실패했습니다.'); });
+            const item = btn.closest('.notice-item');
+            if (item) item.remove();
+            showToast('삭제되었습니다.');
+        })
+        .catch(e => alert(e.message));
+    }
+
+    /* ── 멤버 제거 ── */
+    function removeMember(pmId, btn) {
+        if (!confirm('이 멤버를 프로젝트에서 제거하시겠습니까?')) return;
+        fetch(`/api/project-members/${pmId}`, { method: 'DELETE' })
+        .then(r => {
+            if (!r.ok) return r.json().then(e => { throw new Error(e.message || '제거에 실패했습니다.'); });
+            const card = btn.closest('.member-card');
+            if (card) card.remove();
+            const countEl = document.getElementById('memberCountLabel');
+            if (countEl) countEl.textContent = Math.max(0, Number(countEl.textContent) - 1);
+            showToast('멤버가 제거되었습니다.');
+        })
+        .catch(e => alert(e.message));
     }
 </script>
 </body>

@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -89,5 +90,28 @@ public class NoticeService {
             noticeReadRepository.save(new NoticeRead(noticeId, memberId));
             log.info("[Notice] 읽음 처리 - noticeId: {}, memberId: {}", noticeId, memberId);
         }
+    }
+
+    @Transactional
+    public void updateNotice(Long noticeId, Long memberId, String title, String content) {
+        Notice notice = noticeRepository.findById(noticeId)
+                .orElseThrow(() -> new IllegalArgumentException("공지를 찾을 수 없습니다."));
+        if (!notice.getAuthor().getId().equals(memberId)) {
+            throw new IllegalStateException("작성자만 수정할 수 있습니다.");
+        }
+        if (title != null && !title.isBlank()) notice.setTitle(title);
+        if (content != null && !content.isBlank()) notice.setContent(content);
+        log.info("[Notice] 수정 - noticeId={}", noticeId);
+    }
+
+    @Transactional
+    public void deleteNotice(Long noticeId, Long memberId) {
+        Notice notice = noticeRepository.findById(noticeId)
+                .orElseThrow(() -> new IllegalArgumentException("공지를 찾을 수 없습니다."));
+        if (!notice.getAuthor().getId().equals(memberId)) {
+            throw new IllegalStateException("작성자만 삭제할 수 있습니다.");
+        }
+        notice.setDeletedAt(LocalDateTime.now());
+        log.info("[Notice] 삭제 - noticeId={}", noticeId);
     }
 }

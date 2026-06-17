@@ -50,10 +50,13 @@ public class ProjectScheduleItemDto {
     private final String assigneeInitial;
     private final String assigneeName;
     private final Long assigneeMemberId;
+    private final Long projectMemberId;
+    private final String roleRaw;
     private final String phaseName;
     private final String title;
     private final String startDateLabel;
     private final String endDateLabel;
+    private final String statusRaw;
     private final String statusClass;
     private final String statusLabel;
     private final String memo;
@@ -72,9 +75,11 @@ public class ProjectScheduleItemDto {
 
         ProjectMember pm = s.getProjectMember();
         boolean hasAssignee = pm != null && pm.getMember() != null;
-        this.assigneeName     = hasAssignee ? pm.getMember().getName() : "미배정";
-        this.assigneeInitial  = hasAssignee ? pm.getMember().getName().substring(0, 1) : "-";
-        this.assigneeMemberId = hasAssignee ? pm.getMember().getId() : null;
+        this.assigneeName      = hasAssignee ? pm.getMember().getName() : "미배정";
+        this.assigneeInitial   = hasAssignee ? pm.getMember().getName().substring(0, 1) : "-";
+        this.assigneeMemberId  = hasAssignee ? pm.getMember().getId() : null;
+        this.projectMemberId   = hasAssignee ? pm.getId() : null;
+        this.roleRaw           = s.getRoleType() != null ? s.getRoleType() : "";
 
         this.phaseName      = s.getPhaseName() != null ? s.getPhaseName() : "-";
         this.title          = s.getTitle();
@@ -82,6 +87,7 @@ public class ProjectScheduleItemDto {
         this.endDateLabel   = s.getEndDate() != null ? s.getEndDate().toString() : "-";
 
         String st = s.getStatus() != null ? s.getStatus() : "TODO";
+        this.statusRaw   = st;
         this.statusClass = STATUS_CLASS_MAP.getOrDefault(st, "pending");
         this.statusLabel = STATUS_LABEL_MAP.getOrDefault(st, "대기");
         this.done = "DONE".equals(st);
@@ -98,10 +104,13 @@ public class ProjectScheduleItemDto {
     public String getAssigneeInitial() { return assigneeInitial; }
     public String getAssigneeName() { return assigneeName; }
     public Long getAssigneeMemberId() { return assigneeMemberId; }
+    public Long getProjectMemberId()  { return projectMemberId; }
+    public String getRoleRaw()        { return roleRaw; }
     public String getPhaseName()    { return phaseName; }
     public String getTitle()        { return title; }
     public String getStartDateLabel() { return startDateLabel; }
     public String getEndDateLabel() { return endDateLabel; }
+    public String getStatusRaw()    { return statusRaw; }
     public String getStatusClass()  { return statusClass; }
     public String getStatusLabel()  { return statusLabel; }
     public String getMemo()         { return memo; }

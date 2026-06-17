@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -116,5 +117,26 @@ public class IssueService {
             throw new IllegalStateException("담당자만 상태를 변경할 수 있습니다.");
         }
         issue.setStatus(IssueStatus.valueOf(newStatus));
+    }
+
+    @Transactional
+    public void updateIssue(Long issueId, Long memberId, String title, String description) {
+        Issue issue = issueRepository.findById(issueId)
+                .orElseThrow(() -> new IllegalArgumentException("이슈를 찾을 수 없습니다."));
+        if (issue.getAssignee() == null || !issue.getAssignee().getId().equals(memberId)) {
+            throw new IllegalStateException("담당자만 수정할 수 있습니다.");
+        }
+        if (title != null && !title.isBlank()) issue.setTitle(title);
+        if (description != null) issue.setDescription(description);
+    }
+
+    @Transactional
+    public void deleteIssue(Long issueId, Long memberId) {
+        Issue issue = issueRepository.findById(issueId)
+                .orElseThrow(() -> new IllegalArgumentException("이슈를 찾을 수 없습니다."));
+        if (issue.getAssignee() == null || !issue.getAssignee().getId().equals(memberId)) {
+            throw new IllegalStateException("담당자만 삭제할 수 있습니다.");
+        }
+        issue.setDeletedAt(LocalDateTime.now());
     }
 }

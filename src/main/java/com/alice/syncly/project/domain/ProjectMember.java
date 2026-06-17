@@ -31,6 +31,9 @@ public class ProjectMember {
     @Column(nullable = false, updatable = false)
     private LocalDateTime joinedAt;
 
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
     protected ProjectMember() {
     }
 
@@ -52,4 +55,6 @@ public class ProjectMember {
     public ProjectRole getProjectRole() { return projectRole; }
     public ParticipationStatus getParticipationStatus() { return participationStatus; }
     public LocalDateTime getJoinedAt() { return joinedAt; }
+    public LocalDateTime getDeletedAt() { return deletedAt; }
+    public void setDeletedAt(LocalDateTime deletedAt) { this.deletedAt = deletedAt; }
 }

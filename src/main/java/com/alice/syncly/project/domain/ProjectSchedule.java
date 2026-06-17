@@ -97,5 +97,13 @@ public class ProjectSchedule {
     public LocalDateTime getUpdatedAt()  { return updatedAt; }
     public LocalDateTime getDeletedAt()  { return deletedAt; }
 
-    public void setStatus(String status) { this.status = status; }
+    public void setStatus(String status)     { this.status = status; }
+    public void setPhaseName(String phaseName) { this.phaseName = phaseName; }
+    public void setTitle(String title)         { this.title = title; }
+    public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
+    public void setEndDate(LocalDate endDate)     { this.endDate = endDate; }
+    public void setRoleType(String roleType)      { this.roleType = roleType; }
+    public void setProjectMember(ProjectMember projectMember) { this.projectMember = projectMember; }
+    public void setMemo(String memo)              { this.memo = memo; }
+    public void setDeletedAt(LocalDateTime deletedAt) { this.deletedAt = deletedAt; }
 }

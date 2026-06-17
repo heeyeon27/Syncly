@@ -19,7 +19,7 @@ public interface ProjectScheduleRepository extends JpaRepository<ProjectSchedule
     @Query("SELECT s FROM ProjectSchedule s " +
            "LEFT JOIN FETCH s.projectMember pm " +
            "LEFT JOIN FETCH pm.member " +
-           "WHERE s.project = :project " +
+           "WHERE s.project = :project AND s.deletedAt IS NULL " +
            "ORDER BY s.startDate ASC, s.endDate ASC")
     List<ProjectSchedule> findByProjectWithMemberOrderByDates(@Param("project") Project project);
 
@@ -35,7 +35,7 @@ public interface ProjectScheduleRepository extends JpaRepository<ProjectSchedule
            "JOIN FETCH s.project " +
            "JOIN FETCH s.projectMember pm " +
            "JOIN FETCH pm.member m " +
-           "WHERE s.status <> 'DONE' " +
+           "WHERE s.status <> 'DONE' AND s.deletedAt IS NULL " +
            "AND s.startDate <= :weekEnd AND s.endDate >= :weekStart " +
            "AND m.id = :memberId " +
            "ORDER BY s.endDate ASC")
@@ -48,7 +48,7 @@ public interface ProjectScheduleRepository extends JpaRepository<ProjectSchedule
            "JOIN FETCH s.project " +
            "JOIN FETCH s.projectMember pm " +
            "JOIN FETCH pm.member m " +
-           "WHERE s.status <> 'DONE' AND s.endDate < :today " +
+           "WHERE s.status <> 'DONE' AND s.deletedAt IS NULL AND s.endDate < :today " +
            "AND m.id = :memberId " +
            "ORDER BY s.endDate ASC")
     List<ProjectSchedule> findOverdueSchedules(@Param("today") LocalDate today,

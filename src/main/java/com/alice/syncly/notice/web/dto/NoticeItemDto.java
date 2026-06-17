@@ -12,6 +12,7 @@ public class NoticeItemDto {
     private final String title;
     private final String content;
     private final String authorName;
+    private final Long authorMemberId;
     private final String createdAtLabel;
     private final String projectName;
     private final Long projectId;
@@ -21,6 +22,7 @@ public class NoticeItemDto {
         this.title = notice.getTitle();
         this.content = notice.getContent();
         this.authorName = notice.getAuthor().getName();
+        this.authorMemberId = notice.getAuthor().getId();
         this.createdAtLabel = notice.getCreatedAt() != null
                 ? notice.getCreatedAt().format(FMT) : "-";
         this.projectName = notice.getProject() != null ? notice.getProject().getName() : "";
@@ -31,6 +33,7 @@ public class NoticeItemDto {
     public String getTitle() { return title; }
     public String getContent() { return content; }
     public String getAuthorName() { return authorName; }
+    public Long getAuthorMemberId() { return authorMemberId; }
     public String getCreatedAtLabel() { return createdAtLabel; }
     public String getProjectName() { return projectName; }
     public Long getProjectId() { return projectId; }

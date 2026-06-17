@@ -51,6 +51,24 @@ public class IssueController {
         return ResponseEntity.ok().build();
     }
 
+    @PatchMapping("/{id}")
+    public ResponseEntity<Void> updateIssue(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body,
+            @AuthenticationPrincipal MemberUserDetails userDetails) {
+        issueService.updateIssue(id, userDetails.getMember().getId(),
+                body.get("title"), body.get("description"));
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteIssue(
+            @PathVariable Long id,
+            @AuthenticationPrincipal MemberUserDetails userDetails) {
+        issueService.deleteIssue(id, userDetails.getMember().getId());
+        return ResponseEntity.ok().build();
+    }
+
     @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class})
     public ResponseEntity<Map<String, String>> handleBadRequest(RuntimeException e) {
         return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));

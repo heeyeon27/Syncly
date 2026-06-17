@@ -1,10 +1,12 @@
 package com.alice.syncly.project.web;
 
+import com.alice.syncly.auth.service.MemberUserDetails;
 import com.alice.syncly.project.domain.ProjectMember;
 import com.alice.syncly.project.service.ProjectMemberService;
 import com.alice.syncly.project.web.dto.ProjectMemberCreateRequest;
 import com.alice.syncly.project.web.dto.ProjectMemberResponse;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -37,6 +39,13 @@ public class ProjectMemberController {
     @ExceptionHandler({IllegalStateException.class, IllegalArgumentException.class})
     public ResponseEntity<Map<String, String>> handleBadRequest(RuntimeException e) {
         return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> removeMember(@PathVariable Long id,
+                                             @AuthenticationPrincipal MemberUserDetails userDetails) {
+        projectMemberService.removeMember(id, userDetails.getMember().getId());
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping("/by-project/{projectId}")
