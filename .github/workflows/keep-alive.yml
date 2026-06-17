@@ -11,4 +11,4 @@ jobs:
     steps:
       - name: Send a ping request to Render
         run: |
-          curl -I https://syncly-dtj3.onrender.com
+          curl -Iv https://syncly-dtj3.onrender.com
